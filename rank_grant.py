@@ -249,7 +249,7 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
         r, s_n, n = entry
         info_str += f"\n\nRank: {r}\nExpires: {SEASON_START_WEEKS} weeks after end of S{expiry(r, s_n)}\nNote: {n}"
 
-    result_print = f"{confirm_str}User's ranks recorded:\n\nUser: {user.display_name if user else "(deleted_user)"}{info_str}"
+    result_print = f"{confirm_str}User's ranks recorded:\n\nUser: {user.display_name if user else '(deleted_user)'}{info_str}"
 
     server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
     if server_comm_ch:
