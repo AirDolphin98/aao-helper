@@ -160,7 +160,8 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
             await interaction.followup.send("Note: since it's mid-season, the current season will be recorded as the previous season.", ephemeral=True)
 
     async def add_role(r_id):
-        await user.add_roles(interaction.guild.get_role(r_id))
+        if is_mem:
+            await user.add_roles(interaction.guild.get_role(r_id))
         cur.execute(
             "INSERT INTO ranks_added (time_added, user_id, rank, season_num, note) VALUES (?, ?, ?, ?, ?)",
             (time_added, user_id, rank_to_add, season_num, note)
@@ -168,7 +169,8 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
         conn.commit()
 
     rank_to_add = RANK_DICT[role_id]
-    user = interaction.guild.get_member(user_id)
+    user = bot.get_user(user_id)
+    is_mem = bool(interaction.guild.get_member(user_id))
 
     cur.execute(
         "SELECT rank, season_num FROM ranks_added WHERE user_id = ?",
@@ -193,7 +195,7 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
                     break  # this is why user_rank_entries is reverse sorted
                 elif e_a > e:
                     r_id = RANK_ID_DICT[rank_to_add]
-                    if user.get_role(r_id):
+                    if is_mem and user.get_role(r_id):
                         await user.remove_roles(interaction.guild.get_role(r_id))
                     cur.execute(
                         "DELETE FROM ranks_added WHERE user_id = ? AND rank = ? AND season_num = ?",
@@ -222,7 +224,7 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
                     break  # this is why user_entries is reverse sorted
                 elif h_a >= h and e_a >= e:
                     r_id = RANK_ID_DICT[rank]
-                    if user.get_role(r_id):
+                    if is_mem and user.get_role(r_id):
                         await user.remove_roles(interaction.guild.get_role(r_id))
                     cur.execute(
                         "DELETE FROM ranks_added WHERE user_id = ? AND rank = ? AND season_num = ?",
@@ -247,7 +249,7 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
         r, s_n, n = entry
         info_str += f"\n\nRank: {r}\nExpires: {SEASON_START_WEEKS} weeks after end of S{expiry(r, s_n)}\nNote: {n}"
 
-    result_print = f"{confirm_str}User's ranks recorded:\n\nUser: {interaction.guild.get_member(user_id).display_name}{info_str}"
+    result_print = f"{confirm_str}User's ranks recorded:\n\nUser: {user.display_name if user else "(deleted_user)"}{info_str}"
 
     server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
     if server_comm_ch:
@@ -270,6 +272,7 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
             rank_to_add = RANK_DICT[role_id]
             user = bot.get_user(user_id)
             username = user.name if user else "(deleted_user)"
+            is_mem = bool(interaction.guild.get_member(user_id))
             row_str = f"\n{username}, {rank_to_add}, {str(season_num)} -- "
             if not season_num:
                 error_trace.write(row_str + "Error in add_record(): season_num given as 0 or None.")
@@ -295,7 +298,7 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
                             ephemeral=True)
 
             async def add_role(r_id):
-                if interaction.guild.get_member(user_id):
+                if is_mem:
                     await user.add_roles(interaction.guild.get_role(r_id))
                 cur.execute(
                     "INSERT INTO ranks_added (time_added, user_id, rank, season_num, note) VALUES (?, ?, ?, ?, ?)",
@@ -328,7 +331,7 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
                             break  # this is why user_rank_entries is reverse sorted
                         elif e_a > e:
                             r_id = RANK_ID_DICT[rank_to_add]
-                            if user.get_role(r_id):
+                            if is_mem and user.get_role(r_id):
                                 await user.remove_roles(interaction.guild.get_role(r_id))
                             cur.execute(
                                 "DELETE FROM ranks_added WHERE user_id = ? AND rank = ? AND season_num = ?",
@@ -362,7 +365,7 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
                             break  # this is why user_entries is reverse sorted
                         elif h_a >= h and e_a >= e:
                             r_id = RANK_ID_DICT[rank]
-                            if user.get_role(r_id):
+                            if is_mem and user.get_role(r_id):
                                 await user.remove_roles(interaction.guild.get_role(r_id))
                             cur.execute(
                                 "DELETE FROM ranks_added WHERE user_id = ? AND rank = ? AND season_num = ?",
