@@ -268,8 +268,9 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
             time_added, user_id, role_id, season_num, note = row
             time_added += 0.0001 * index
             rank_to_add = RANK_DICT[role_id]
-            user = interaction.guild.get_member(user_id)
-            row_str = f"\n{user.name}, {rank_to_add}, {str(season_num)} -- "
+            user = bot.get_user(user_id)
+            username = user.name if user else "(deleted_user)"
+            row_str = f"\n{username}, {rank_to_add}, {str(season_num)} -- "
             if not season_num:
                 error_trace.write(row_str + "Error in add_record(): season_num given as 0 or None.")
                 continue
@@ -294,14 +295,15 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
                             ephemeral=True)
 
             async def add_role(r_id):
-                await user.add_roles(interaction.guild.get_role(r_id))
+                if interaction.guild.get_member(user_id):
+                    await user.add_roles(interaction.guild.get_role(r_id))
                 cur.execute(
                     "INSERT INTO ranks_added (time_added, user_id, rank, season_num, note) VALUES (?, ?, ?, ?, ?)",
                     (time_added, user_id, rank_to_add, season_num, note)
                 )
                 conn.commit()
 
-            row_to_write = [index, user.name, rank_to_add, season_num, note]
+            row_to_write = [index, username, rank_to_add, season_num, note]
 
             cur.execute(
                 "SELECT rank, season_num FROM ranks_added WHERE user_id = ?",
@@ -717,7 +719,9 @@ async def show_user_ranks(interaction: discord.Interaction):
         row_list = []
         for row in cur.fetchall():
             time_added, user_id, rank, num, note = row
-            row_list.append([time_added, interaction.guild.get_member(user_id).name, rank, num, note])
+            user = bot.get_user(user_id)
+            username = user.name if user else "(deleted_user)"
+            row_list.append([time_added, username, rank, num, note])
 
         row_list.sort(key=lambda ls: (expiry(ls[2], ls[3]), ls[0]))
         for index, row in enumerate(row_list):
