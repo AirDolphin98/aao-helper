@@ -2,11 +2,13 @@ import discord
 from discord.ext import commands
 import sqlite3
 import os
+import sys
 from dotenv import load_dotenv
 
 load_dotenv()
 
 TOKEN = os.getenv('DISCORD_BOT_TOKEN')
+DEBUG = bool(sys.argv[1:] and sys.argv[1].lower() == 'test')  # simple command line test mode flag
 intents = discord.Intents.all()
 
 bot = commands.Bot(command_prefix='/', intents=intents, help_command=None)
@@ -59,6 +61,7 @@ cur.execute(  # currently channel is expected to take a json serialized list of 
     )
     """
 )
+
 conn.commit()
 """Here's a tip on how to update a database schema: 
 Add the following after the create stmt:
@@ -85,14 +88,14 @@ upload_ranks_path = os.path.join(txt_views_dir, "upload_ranks.txt")
 with open(upload_ranks_path, 'w') as f:
     pass
 
-# Manually toggle for testbot
-DEBUG = False
 
 STAFF_ROLE_ID = 943827276104097842
 MOD_ROLE_ID = 659883868635267075
 BEAMDOG_ROLE_ID = 610480003230072833
 COMMANDERS_ROLE_ID = 941829635367378944
-SERVER_COMM_CH = 670090977356021780 #server-logs
+SERVER_COMM_CH = 670090977356021780 #server-commands
+
+ANNOUNCEMENT_CHANNEL = 610895694206861364
 
 TITLE_LIMIT = 256
 DESC_LIMIT = 4096
@@ -151,12 +154,12 @@ SHOWCASE_CHANNELS = {
 """Debugging in A&AO Test Server"""
 if DEBUG:
     TOKEN = os.getenv('DISCORD_TESTBOT_TOKEN')
-
     STAFF_ROLE_ID = 1265197758449713233
     MOD_ROLE_ID = 864690035915358258
     COMMANDERS_ROLE_ID = 940238197307367444
     SERVER_COMM_CH = 1265198095860502671
 
+    ANNOUNCEMENT_CHANNEL = 943002433091682434 # starred posts
     ARCHIVE_CATEGORY = 975899857959141416
     SHOWCASE_CHANNELS = {
         940445952534257695: {
@@ -165,4 +168,3 @@ if DEBUG:
             'active': 864688826005454898
         }
     }
-""""""

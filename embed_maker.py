@@ -41,13 +41,14 @@ class CreateEmbedModal(discord.ui.Modal):
         try:
             if self.message:
                 await self.message.edit(embed=embed)
-                if self.message.edited_at:
-                    if datetime.now(timezone.utc) - self.message.edited_at > timedelta(days=1.0):
-                        await interaction.guild.get_channel_or_thread(SERVER_COMM_CH).send(f"An embed edited more than a day ago was edited again: {self.message.jump_url}")
-                elif datetime.now(timezone.utc) - self.message.created_at > timedelta(days=1.0):
-                    await interaction.guild.get_channel_or_thread(SERVER_COMM_CH).send(f"An embed older than a day was edited: {self.message.jump_url}")
+                msg = self.message
             else:
-                await interaction.channel.send(embed=embed)
+                msg = await interaction.channel.send(embed=embed)
+            server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
+            if server_comm_ch:
+                await server_comm_ch.send(f"{interaction.user.name} {'edited' if self.message else 'created'} an embed: {msg.jump_url}")
+            else:
+                await interaction.followup.send("Server commands channel for logging purposes not found", ephemeral=True)
         except discord.errors.HTTPException as e:
             print("ERROR in embed_maker.py CreateEmbedModal on_submit\n", e)
             await interaction.followup.send("HTTP error: check image url", ephemeral=True)

@@ -6,7 +6,7 @@ from typing import Optional
 from params import *
 
 
-@tree.command(description="Assign showcase roles by pinging members in a showcase channel")
+@tree.command(description="Assign showcase roles by pinging members in a showcase channel (follow-up message)")
 @app_commands.checks.has_role(STAFF_ROLE_ID)
 @app_commands.checks.bot_has_permissions(manage_roles=True)
 async def showcase_give_role(interaction: discord.Interaction):

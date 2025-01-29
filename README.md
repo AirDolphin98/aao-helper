@@ -50,45 +50,53 @@ You also need to do the following:
 
 * When the bot first enters a Discord server or when its commands are updated in terms of the interface (command names, descriptions, and parameters, not function code), you must type `/sync` in any Discord channel as someone with Manage Server perms to register the commands.
 
-Setting the DEBUG variable in `params.py` to `True` allows you to test the bot with different channels and roles etc. The current debug values are for the Discord server A&AO Test Server, as well as the bot A&AO testbot whose token you put after `DISCORD_TESTBOT_TOKEN=` in a (local) `.env` file.
+Calling the main file with first command line argument `test` allows you to test the bot with different channels and roles etc. The current debug values are for the Discord server A&AO Test Server, as well as the bot A&AO testbot whose token you put after `DISCORD_TESTBOT_TOKEN=` in a (local) `.env` file.
 
 ## How to use
 
-The commands for roll sides and create/edit embed should be fairly self-explanatory.
+The commands for roll sides, roll dice, and create/edit embed or announcement should be fairly self-explanatory.
 
 1. `/sides` Anyone can use.
 
-2. `/create_embed` Staff or Beamdog can use.
+2. `/dice` Anyone can use.
 
-3. `Message right-click -> Apps -> Edit embed` (context menu command) Staff or Beamdog can use.
+3. `/create_embed` Staff or Beamdog can use.
 
-4. `list_non_commanders_mem_pings` Must have Manage Server permission to use. Can only use in #server-commands. Lists the pings of members (not Staff or bot) who for one reason or another do not have the Commanders role, which is supposed to be universal to non-Staff non-bot.
+4. `Message right-click -> Apps -> Edit embed` (context menu command) Staff or Beamdog can use.
 
-5. `push_channels_as_default` Must have Manage Server permission to use. Basically always call this when creating new channels. Discord's Community Onboarding system has extremely unfortunate behavior for new channels in categories created after Onboarding was switched on, or without category. Anyone who doesn't have Show All Channels ticked (or who fiddles with Browse Channels which will untick Show All Channels) won't be able to see such new channels except via a random "suggested" tab, or by picking them in Browse Channels. This command automatically performs a clever technique to force everyone to see the channels: create a temp role, private the channels to be only that role, give everyone the role (which may take a while), unprivate the channels and delete the role. Carefully read the messages sent by this command for more info.
+5. `/announcement` Only Admin can use. Only sends to #announcements channel.
+
+6. `Message right-click -> Apps -> Edit Message` (context menu command) Only Admin can use. Can edit non-embed in any channel except #server-commands.
+
+Note: to make user or channel mentions function properly when entered through a modal field, they must be in angle bracket format, e.g. <@1234567890> or <#1234567890>. @everyone and @here are exceptions and work as written.
+
+7. `list_non_commanders_mem_pings` Must have Manage Server permission to use. Can only use in #server-commands. Lists the pings of members (not Staff or bot) who for one reason or another do not have the Commanders role, which is supposed to be universal to non-Staff non-bot.
+
+8. `push_channels_as_default` Must have Manage Server permission to use. Basically always call this when creating new channels. Discord's Community Onboarding system has extremely unfortunate behavior for new channels in categories created after Onboarding was switched on, or without category. Anyone who doesn't have Show All Channels ticked (or who fiddles with Browse Channels which will untick Show All Channels) won't be able to see such new channels except via a random "suggested" tab, or by picking them in Browse Channels. This command automatically performs a clever technique to force everyone to see the channels: create a temp role, private the channels to be only that role, give everyone the role (which may take a while), unprivate the channels and delete the role. Carefully read the messages sent by this command for more info.
 
 ### Showcase
 
-6. `/showcase_give_role` Invoke this in a showcase channel to be prompted to enter user pings, which assigns them the showcase role for that channel.
+9. `/showcase_give_role` Invoke this in a showcase channel to be prompted to enter user pings, which assigns them the showcase role for that channel.
 
-7. `/showcase_clear_role` Invoke this in a showcase channel to fully deassign its showcase role. Provides the option to ping the players from the gallery with a friendly message.
+10. `/showcase_clear_role` Invoke this in a showcase channel to fully deassign its showcase role. Provides the option to ping the players from the gallery with a friendly message.
 
-8. `/toggle_showcase` Invoke this in a showcase channel to automatically move it either from its usual category to the CACHE category, or vice versa. Its gallery channel will be moved along with it. The channel order may need to be adjusted for presentation, but Discord does a decent job of preserving the order sometimes.
+11. `/toggle_showcase` Invoke this in a showcase channel to automatically move it either from its usual category to the CACHE category, or vice versa. Its gallery channel will be moved along with it. The channel order may need to be adjusted for presentation, but Discord does a decent job of preserving the order sometimes.
 
 Note: Finals channels are often intended to have gallery-1 channels as their gallery, but only showcase-1 channels are linked to them. Therefore, you're not supposed to archive a showcase-1 channel when a finals channel is on display. There's no issue with doing that manually, however.
 
 ### Auto manage threads
 
-9. `/auto_unarchive` Invoke this in a thread to automatically unhide it when it would normally disappear from the channel list after the auto archive duration. Invoke in a channel to do this for all threads in that channel. Closed/locked threads will not be affected; auto archive does not register as archiving, it somehow only changes visibility. Note: takes `15` minutes to take effect so as not to clog up the Audit Log from frequent bot restarts.
+12. `/auto_unarchive` Invoke this in a thread to automatically unhide it when it would normally disappear from the channel list after the auto archive duration. Invoke in a channel to do this for all threads in that channel. Closed/locked threads will not be affected; auto archive does not register as archiving, it somehow only changes visibility. Note: takes `15` minutes to take effect so as not to clog up the Audit Log from frequent bot restarts.
 
-10. `/auto_close_forum_posts` Invoke this with a forum ID to have it automatically archive forum posts that have not had recent messages. Default cutoff is `14` days ago. Can also auto-lock if desired.
+13. `/auto_close_forum_posts` Invoke this with a forum ID to have it automatically archive forum posts that have not had recent messages. Default cutoff is `14` days ago. Can also auto-lock if desired.
 
-11. `/list_auto_managed_channels` Invoke this to get a list of channels, threads, and forums currently being auto-managed with the above commands.
+14. `/list_auto_managed_channels` Invoke this to get a list of channels, threads, and forums currently being auto-managed with the above commands.
 
 ### Exhibition match
 
-12. `/init_exhibitions` Invoke this anywhere to send embeds to all the exhibition-match channels with a permanent button that prompts the user to enter user pings, which assigns them Exhibition Match role and reserves the channel for them until the match is ended.
+15. `/init_exhibitions` Invoke this anywhere to send embeds to all the exhibition-match channels with a permanent button that prompts the user to enter user pings, which assigns them Exhibition Match role and reserves the channel for them until the match is ended.
 
-13. `/end_exhibitions` A player in an exhibition match invokes this in an ongoing match channel to end the match in that channel. 
+16. `/end_exhibitions` A player in an exhibition match invokes this in an ongoing match channel to end the match in that channel. 
 
 ## Ranked badge system
 
@@ -106,19 +114,19 @@ Unless otherwise specified, Staff and only Staff role may use the following comm
 
 * `On rank react` In the request-rank channel, members post a screenshot of their profile with the rank for the season they want recorded. By reacting to this member's message with a medallion emoji, a select menu will pop up in the server-commands channel asking for which season the role should be granted.
 
-14. `/grant_rank` Invoke this anywhere to give one or more users a given rank for a given season. @mention or raw User ID specifies the user. Tip: if the member is not visible in the channel, you can get the proper @mention by pressing *space* after typing out @ and the username in full. To find the User ID, you can check this Discord support article: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID
+17. `/grant_rank` Invoke this anywhere to give one or more users a given rank for a given season. @mention or raw User ID specifies the user. Tip: if the member is not visible in the channel, you can get the proper @mention by pressing *space* after typing out @ and the username in full. To find the User ID, you can check this Discord support article: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID
 
-15. `/get_season_end` Any member can invoke this to check the current season end. 
+18. `/get_season_end` Any member can invoke this to check the current season end. 
 
-16. `/set_season_end` Mod or Beamdog role can invoke this to manually set the current season end. There are various checks which can be bypassed with the override option. 
+19. `/set_season_end` Mod or Beamdog role can invoke this to manually set the current season end. There are various checks which can be bypassed with the override option. 
 
-17. `/show_user_ranks` Invoke this to generate a txt file of all the contents of the database in csv format, i.e. all ranks recorded. This view provides a delete button which allows you to manually delete a range of rows in the txt file. As a precaution, only Mod may delete rows older than 24 hours. Deleted rows will be printed back in a txt file in csv format. 
+20. `/show_user_ranks` Invoke this to generate a txt file of all the contents of the database in csv format, i.e. all ranks recorded. This view provides a delete button which allows you to manually delete a range of rows in the txt file. As a precaution, only Mod may delete rows older than 24 hours. Deleted rows will be printed back in a txt file in csv format. 
 
-18. `/upload_user_ranks` Invoke this to upload a txt file in csv format of ranks to insert into the database. Useful for re-inserting deleted roles or inserting a lot of users. Names are case-sensitive. Tip: csv format allows you to use commas `,` inside an entry if you surround it with double-quotes `"`, and to use a double-quote if you add an extra double-quote like `""`.
+21. `/upload_user_ranks` Invoke this to upload a txt file in csv format of ranks to insert into the database. Useful for re-inserting deleted roles or inserting a lot of users. Names are case-sensitive. Tip: csv format allows you to use commas `,` inside an entry if you surround it with double-quotes `"`, and to use a double-quote if you add an extra double-quote like `""`.
 
 ## Hall of fame embeds
 
-19. `hall_of_fame` This command group allows Staff to more easily post in hall-of-fame channel. These commands grant Hall of Fame role to all featured players. 
+22. `hall_of_fame` This command group allows Staff to more easily post in hall-of-fame channel. These commands grant Hall of Fame role to all featured players. 
 
     a. `top_10` Posts Top 10 Platinum embed for season end. If not for a just-ended season, it does not auto-grant ranks aside from Hall of Fame. For a just-ended season, grants and records Top 10 and #1 ranks too.
 
