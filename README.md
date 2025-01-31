@@ -14,7 +14,11 @@ So far, these are the main functions of the bot:
 
 * Roll for sides (assign players to either Axis or Allies)
 
+* Roll a number of dice
+
 * Create and edit embed messages
+
+* Send normal messages to announcement channel, and edit normal messages
 
 * Correct invisibility of newly created channels
 
