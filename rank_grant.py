@@ -169,8 +169,8 @@ async def add_record(interaction: discord.Interaction, time_added: float, user_i
         conn.commit()
 
     rank_to_add = RANK_DICT[role_id]
-    user = bot.get_user(user_id)
     is_mem = bool(interaction.guild.get_member(user_id))
+    user = interaction.guild.get_member(user_id) if is_mem else bot.get_user(user_id)
 
     cur.execute(
         "SELECT rank, season_num FROM ranks_added WHERE user_id = ?",
@@ -270,9 +270,9 @@ async def add_records(interaction: discord.Interaction, rows: list[tuple[float, 
             time_added, user_id, role_id, season_num, note = row
             time_added += 0.0001 * index
             rank_to_add = RANK_DICT[role_id]
-            user = bot.get_user(user_id)
-            username = user.name if user else "(deleted_user)"
             is_mem = bool(interaction.guild.get_member(user_id))
+            user = interaction.guild.get_member(user_id) if is_mem else bot.get_user(user_id)
+            username = user.name if user else "(deleted_user)"
             row_str = f"\n{username}, {rank_to_add}, {str(season_num)} -- "
             if not season_num:
                 error_trace.write(row_str + "Error in add_record(): season_num given as 0 or None.")
