@@ -562,18 +562,33 @@ async def grant_rank(interaction: discord.Interaction, user_id: str, rank: app_c
     if not m:
         await interaction.response.send_message("Must provide a number for user_id (may be as @mention)", ephemeral=True)
         return
+    users = []
+    err_users = []
     for u_id in m:
         if len(u_id) < 12:
-            await interaction.response.send_message("Number received as user_id was under 12 digits (arbitrary sanity check). If this was actually correct, please enter the number padded with leading 0's.",
-                                                    ephemeral=True)
-            return
-        user = interaction.guild.get_member(int(u_id))
-        if not user:
-            await interaction.response.send_message("No user found for user_id", ephemeral=True)
-            return
+            err_users.append(f"Number received as user_id `{u_id}` was under 12 digits (arbitrary sanity check). If this was actually correct, please enter the number padded with leading 0's.")
+            continue
+        if not bot.get_user(int(u_id)):
+            err_users.append(f"No user found for user_id `{u_id}`")
+            continue
         time_added = datetime.timestamp(datetime.now(timezone.utc))
-        await add_record(interaction, time_added, int(u_id), int(rank.value), season_num, note)
-        await interaction.followup.send(f"Finished executing `/{interaction.command.name}`", ephemeral=True)
+        users.append((time_added, int(u_id), int(rank.value), season_num, note))
+
+    err_str = "\n\nThe following user_ids were not processed:\n\n" + "\n".join(err_users) if err_users else ""
+    if len(users) == 1:
+        await add_record(interaction, *users[0])
+    elif len(users) > 1:
+        cur.execute(
+            "SELECT season_num, end_timestamp FROM current_season_end WHERE guild_id = ?",
+            (interaction.guild_id,)
+        )
+        current_end = cur.fetchone()
+        if not current_end:
+            await interaction.response.send_message("No current season end stored yet. Use slash command `/set_season_end`." + err_str, ephemeral=True)
+            return
+        c_num, end_ts = current_end
+        await add_records(interaction, users, c_num, end_ts)
+    await interaction.followup.send(f"Finished executing `/{interaction.command.name}`" + err_str, ephemeral=True)
 
 
 @tree.command(description="Show current season end date and time")
@@ -664,6 +679,7 @@ def flip_season(end_ts):
     return datetime.timestamp(new_dt)
 
 
+# NOTE: This is set to update the season number some SEASON_START_WEEKS weeks after the season end, because it is simpler this way for the program code, and for the rule of no ranks granted during the first SEASON_START_WEEKS weeks of a season.
 @tasks.loop(minutes=30.0)
 async def auto_update_season():
     cur.execute("SELECT guild_id, season_num, end_timestamp FROM current_season_end")
