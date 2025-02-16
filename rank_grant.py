@@ -633,7 +633,7 @@ async def set_season_end(interaction: discord.Interaction, season_num: int, end_
         current_end = cur.fetchone()
         if current_end:
             c_num, end_ts = current_end
-            if override_code.lower() != OVERRIDE_CODE.lower():
+            if override_code and override_code.lower() != OVERRIDE_CODE.lower():
                 if timedelta(seconds=0.0) < datetime.now(timezone.utc) - datetime.fromtimestamp(end_ts, timezone.utc) < timedelta(weeks=SEASON_START_WEEKS):
                     await interaction.response.send_message(
                         f"Too early to update season. Wait until grace period of {SEASON_START_WEEKS} weeks is over, or use override code.",
