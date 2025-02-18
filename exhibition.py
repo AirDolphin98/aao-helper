@@ -101,17 +101,17 @@ class ExhibitionStartView(discord.ui.View):
             if not participant:
                 cur.execute(
                     "INSERT INTO exhibition_users (user_id, channel) VALUES (?, ?)",
-                    (mem.id, json.dumps([exh_label]))
+                    (mem.id, json.dumps([exh_ch.id]))
                 )
                 conn.commit()
             else:
-                _, ch_labels = participant[0]
-                ch_labels = json.loads(ch_labels)
-                if exh_label not in ch_labels:
-                    ch_labels.append(exh_label)
+                _, ch_ids = participant[0]
+                ch_ids = json.loads(ch_ids)
+                if exh_ch.id not in ch_ids:
+                    ch_ids.append(exh_ch.id)
                     cur.execute(
                         "REPLACE INTO exhibition_users (user_id, channel) VALUES (?, ?)",
-                        (mem.id, json.dumps(ch_labels))
+                        (mem.id, json.dumps(ch_ids))
                     )
                     conn.commit()
             await mem.add_roles(exh_role)
