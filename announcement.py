@@ -46,7 +46,7 @@ class CreateAnnouncementModal(discord.ui.Modal):
 
 
 @tree.command(description="Create an announcement with AAOHelper")
-@app_commands.checks.has_permissions(administrator=True)
+@app_commands.checks.has_any_role(STAFF_ROLE_ID, BEAMDOG_ROLE_ID)
 @app_commands.checks.bot_has_permissions(send_messages=True)
 async def announcement(interaction: discord.Interaction):
     if not bot.get_channel(ANNOUNCEMENT_CHANNEL):  # Note: bot.get_channel is based on discord caching, use interaction.guild.get_channel_or_thread instead throughout this file if this ever fails
@@ -55,7 +55,7 @@ async def announcement(interaction: discord.Interaction):
     await interaction.response.send_modal(CreateAnnouncementModal())
 
 
-@app_commands.checks.has_permissions(administrator=True)
+@app_commands.checks.has_any_role(STAFF_ROLE_ID, BEAMDOG_ROLE_ID)
 @app_commands.checks.bot_has_permissions(send_messages=True)
 @app_commands.context_menu(name="Edit message")
 async def edit_announcement(interaction: discord.Interaction, message: discord.Message):
