@@ -68,9 +68,9 @@ The commands for roll sides, roll dice, and create/edit embed or announcement sh
 
 4. `Message right-click -> Apps -> Edit embed` (context menu command) Staff or Beamdog can use.
 
-5. `/announcement` Only Admin can use. Only sends to #announcements channel.
+5. `/announcement` Staff or Beamdog can use. Only sends to #announcements channel.
 
-6. `Message right-click -> Apps -> Edit Message` (context menu command) Only Admin can use. Can edit non-embed in any channel except #server-commands.
+6. `Message right-click -> Apps -> Edit Message` (context menu command) Staff or Beamdog can use. Can edit non-embed in any channel except #server-commands.
 
 Note: to make user or channel mentions function properly when entered through a modal field, they must be in angle bracket format, e.g. <@1234567890> or <#1234567890>. @everyone and @here are exceptions and work as written.
 
