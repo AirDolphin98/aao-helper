@@ -77,6 +77,8 @@ async def showcase_clear_role(interaction: discord.Interaction, gallery_ping_mes
     for user in players:
         await user.remove_roles(showcase_role, reason=f"/{interaction.command.name} called by {interaction.user.name}.")
 
+    await interaction.response.send_message(f"Showcase role cleared for {len(players)} players.", ephemeral=True)
+    
     server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
     if gallery_ping_message:
         gallery_id = showcase_dict['gallery']
@@ -89,7 +91,6 @@ async def showcase_clear_role(interaction: discord.Interaction, gallery_ping_mes
                     await server_comm_ch.send("WARNING: Gallery channel id stored in program data not found in server.")
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} cleared showcase role for #{interaction.channel.name}")
-    await interaction.response.send_message(f"Showcase role cleared for {len(players)} players.", ephemeral=True)
 
 
 @tree.command(description="Moves showcase channel between cache and main category")
