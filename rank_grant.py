@@ -706,7 +706,9 @@ async def auto_update_season():
                 for index, row in enumerate(row_list):
                     time_added, user_id, rank, num, note = row
                     if num < expiry_back(RANK_ID_DICT[rank], new_num):
-                        deleted_ranks.writerow([index, guild.get_member(user_id).name, rank, num, note])
+                        user = bot.get_user(user_id)
+                        username = user.name if user else "(deleted_user)"
+                        deleted_ranks.writerow([index, username, rank, num, note])
                         await delete_rank(guild, time_added, user_id, rank, False)
                 conn.commit()
             try:
