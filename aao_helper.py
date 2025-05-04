@@ -143,6 +143,30 @@ async def list_non_commanders_mem_pings(interaction: discord.Interaction, limit:
     await interaction.response.send_message(header + report)
 
 
+discussion_channels_movable = set()
+discussion_ch_lists = {}
+
+def freeze_discussion_channel_list(guild: discord.Guild):
+    discussion_category = guild.get_channel(DISCUSSION_CATEGORY)
+    discussion_channel_list = discussion_category.channels if discussion_category and discussion_category.type == discord.ChannelType.category else []
+    discussion_ch_lists[guild.id] = { ch.id: (i, ch.position) for i, ch in enumerate(discussion_channel_list) }
+    if discussion_ch_lists[guild.id]: print(f"Discussion channel list for server {guild.name} frozen in place: {discussion_ch_lists[guild.id]}")
+
+
+@tree.command(description="Enables moving channels around in the channel list for 10 minutes (Discussion category, admin only)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.checks.bot_has_permissions(manage_channels=True)
+async def unlock_channel_movement(interaction: discord.Interaction):
+    if interaction.guild.id in discussion_channels_movable:
+        await interaction.response.send_message("Discussion category channel movement is already unlocked", ephemeral=True)
+        return
+    discussion_channels_movable.add(interaction.guild.id)
+    await interaction.response.send_message("Discussion category channel movement is now unlocked for 10 minutes", ephemeral=True)
+    await asyncio.sleep(600)
+    discussion_channels_movable.discard(interaction.guild.id)
+    freeze_discussion_channel_list(interaction.guild)
+
+
 class ConfirmDefaultsView(discord.ui.View):
     temp = None  # stores generated temp role; useful if execution is interrupted yet bot is not restarted
 
@@ -270,6 +294,32 @@ async def on_message(message: discord.Message):
 async def on_message_edit(before, after):
     await message_checks(after)
 
+
+@bot.event
+async def on_guild_channel_update(before: discord.abc.GuildChannel, after: discord.abc.GuildChannel):
+    discussion_category = before.guild.get_channel(DISCUSSION_CATEGORY)
+    if before.guild.id not in discussion_channels_movable and discussion_category and before.category == discussion_category and before.position != after.position:
+        discussion_category_frozen_channels = discussion_ch_lists.get(before.guild.id, {})
+        def pos_diff(ch_id):
+            ch = before.guild.get_channel(ch_id)
+            if not ch:
+                return float('inf')
+            return abs(ch.position - discussion_category_frozen_channels[ch_id][1])
+        
+        moved_ch_id = max(discussion_category_frozen_channels.keys(), key=pos_diff)
+        moved_ch = before.guild.get_channel(moved_ch_id)
+        if not moved_ch:
+            return
+        discussion_channels_movable.add(before.guild.id)
+        await moved_ch.move(category=discussion_category, beginning=True, offset=discussion_category_frozen_channels[moved_ch_id][0])
+        await asyncio.sleep(2)  # lets consequent channel movement bot.events pass
+        discussion_channels_movable.discard(before.guild.id)
+        if SERVER_COMM_CH:
+            server_comm_ch = before.guild.get_channel(SERVER_COMM_CH)
+            if server_comm_ch:
+                await server_comm_ch.send(f"Discussion category channel movement is locked. Use command `/unlock_channel_movement` to edit channel positions.")
+
+
 @bot.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     await rank_reaction_add(payload)
@@ -300,6 +350,8 @@ async def on_ready():
         forum_closer.start()
     if not auto_update_season.is_running():
         auto_update_season.start()
+    for guild in bot.guilds:
+        freeze_discussion_channel_list(guild)
 
 
 # For persistent views
