@@ -241,7 +241,7 @@ async def on_message(message: discord.Message):
     if not (message.author.bot or message.author.get_role(STAFF_ROLE_ID) or message.author.get_role(BEAMDOG_ROLE_ID)):
         prev = last_msgs.get(message.author.id)
         limit = 5
-        if prev and len(message.content) > 4 and message.content == prev[-1].content and all(
+        if prev and message.channel.type == discord.ChannelType.text and len(message.content) > 4 and message.content == prev[-1].content and all(
                     channel_id != msg.channel.id for msg in prev):
             prev.append(message)
             if len(prev) >= limit:
