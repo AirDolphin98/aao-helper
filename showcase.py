@@ -118,4 +118,4 @@ async def toggle_showcase(interaction: discord.Interaction):
         if gallery:
             await gallery.edit(category=archive)
         await showcase.edit(category=archive)
-        await interaction.response.send_message("Moved channel to archive category!", ephemeral=True)
+        await interaction.response.send_message("Moved channel to archive category! (CACHE)", ephemeral=True)
