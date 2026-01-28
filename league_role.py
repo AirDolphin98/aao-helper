@@ -103,7 +103,8 @@ async def align_league_db(interaction: discord.Interaction):
     await interaction.response.send_message("League database updated to = current role holders. Do /print_league_db to view the updated database contents.", ephemeral=True)
     server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
     if server_comm_ch:
-        await server_comm_ch.send(f"{interaction.user.name.replace('_', '\\_')} ran /align_league_db to match the league_members database to the current role holders. Run /print_league_db to view the updated database contents.")
+        username = interaction.user.name.replace('_', '\\_')
+        await server_comm_ch.send(f"{username} ran /align_league_db to match the league_members database to the current role holders. Run /print_league_db to view the updated database contents.")
 
 
 @tree.command(name="print_league_db", description="Prints out the league_members database.")
@@ -113,10 +114,11 @@ async def print_league_db(interaction: discord.Interaction):
     if not rows:
         await interaction.response.send_message("No entries in the league_members database.", ephemeral=True)
         return
-    output = f"league_members database:    Total: {len(rows)} members\nUsername    Last Updated (UTC)\n"
+    output = f"league_members database:    Total members: {len(rows)}\nUsername    Last Updated (UTC)\n"
     for user_id, last_updated in rows:
         last_updated = datetime.fromtimestamp(last_updated, tz=timezone.utc)
-        output += f"{interaction.guild.get_member(user_id).name.replace('_', '\\_')}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        username = interaction.guild.get_member(user_id).name.replace('_', '\\_') if interaction.guild.get_member(user_id) else f"User ID {user_id}"
+        output += f"{username}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
         if len(output) > 1900:
             await interaction.followup.send(output, ephemeral=True)
             output = ""
