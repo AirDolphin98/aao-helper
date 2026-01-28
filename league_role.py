@@ -118,6 +118,6 @@ async def print_league_db(interaction: discord.Interaction):
         last_updated = datetime.fromtimestamp(last_updated, tz=timezone.utc)
         output += f"{interaction.guild.get_member(user_id).name}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
         if len(output) > 1900:
-            await interaction.response.send_message(output, ephemeral=True)
+            await interaction.followup.send(output, ephemeral=True)
             output = ""
-    await interaction.response.send_message(output, ephemeral=True)
+    await interaction.followup.send(output, ephemeral=True)
