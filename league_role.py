@@ -58,7 +58,7 @@ async def expire_league_roles(guild: discord.Guild):
             for member in expired_users:
                 await member.remove_roles(guild.get_role(LEAGUE_ROLE_ID), reason=f"Auto-remove due to lack of ping for {AUTO_EXPIRATION_DAYS} days.")
             if server_comm_ch:
-                joined_names = "\n".join(member.name for member in expired_users)
+                joined_names = "\n".join(member.name.replace('_', '\\_') for member in expired_users)
                 await server_comm_ch.send(f"Auto-removed league role from:\n{joined_names}\ndue to lack of ping for {AUTO_EXPIRATION_DAYS} days.")
         else:
             if server_comm_ch:
@@ -83,7 +83,7 @@ async def update_league_on_ping(msg: discord.Message):
         if missing_users:            
             server_comm_ch = msg.guild.get_channel_or_thread(SERVER_COMM_CH)
             if server_comm_ch:
-                joined_names = "\n".join(user.name for user in missing_users)
+                joined_names = "\n".join(user.name.replace('_', '\\_') for user in missing_users)
                 await server_comm_ch.send(f"Auto-added league role to:\n{joined_names}\ndue to league org ping in league thread: {msg.channel.name}")
         await expire_league_roles(msg.guild)
 
@@ -103,7 +103,7 @@ async def align_league_db(interaction: discord.Interaction):
     await interaction.response.send_message("League database updated to = current role holders. Do /print_league_db to view the updated database contents.", ephemeral=True)
     server_comm_ch = interaction.guild.get_channel_or_thread(SERVER_COMM_CH)
     if server_comm_ch:
-        await server_comm_ch.send(f"{interaction.user.name} ran /align_league_db to match the league_members database to the current role holders. Run /print_league_db to view the updated database contents.")
+        await server_comm_ch.send(f"{interaction.user.name.replace('_', '\\_')} ran /align_league_db to match the league_members database to the current role holders. Run /print_league_db to view the updated database contents.")
 
 
 @tree.command(name="print_league_db", description="Prints out the league_members database.")
@@ -116,7 +116,7 @@ async def print_league_db(interaction: discord.Interaction):
     output = f"league_members database:    Total: {len(rows)} members\nUsername    Last Updated (UTC)\n"
     for user_id, last_updated in rows:
         last_updated = datetime.fromtimestamp(last_updated, tz=timezone.utc)
-        output += f"{interaction.guild.get_member(user_id).name}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        output += f"{interaction.guild.get_member(user_id).name.replace('_', '\\_')}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
         if len(output) > 1900:
             await interaction.followup.send(output, ephemeral=True)
             output = ""
