@@ -58,7 +58,8 @@ async def expire_league_roles(guild: discord.Guild):
             for member in expired_users:
                 await member.remove_roles(guild.get_role(LEAGUE_ROLE_ID), reason=f"Auto-remove due to lack of ping for {AUTO_EXPIRATION_DAYS} days.")
             if server_comm_ch:
-                await server_comm_ch.send(f"Auto-removed league role from:\n{"\n".join(member.name for member in expired_users)}\ndue to lack of ping for {AUTO_EXPIRATION_DAYS} days.")
+                joined_names = "\n".join(member.name for member in expired_users)
+                await server_comm_ch.send(f"Auto-removed league role from:\n{joined_names}\ndue to lack of ping for {AUTO_EXPIRATION_DAYS} days.")
         else:
             if server_comm_ch:
                 await server_comm_ch.send(f"Too many inactive league members detected: {len(expired_users)} users (max {EXPIRATION_SAFETY_CAP}). Auto-removal skipped.")
@@ -82,7 +83,8 @@ async def update_league_on_ping(msg: discord.Message):
         if missing_users:            
             server_comm_ch = msg.guild.get_channel_or_thread(SERVER_COMM_CH)
             if server_comm_ch:
-                await server_comm_ch.send(f"Auto-added league role to:\n{"\n".join(user.name for user in missing_users)}\ndue to league org ping in league thread: {msg.channel.name}")
+                joined_names = "\n".join(user.name for user in missing_users)
+                await server_comm_ch.send(f"Auto-added league role to:\n{joined_names}\ndue to league org ping in league thread: {msg.channel.name}")
         await expire_league_roles(msg.guild)
 
 
