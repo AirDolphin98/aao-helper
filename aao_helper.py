@@ -18,6 +18,7 @@ from showcase import *
 from exhibition import *
 from thread_auto_manage import *
 from hall_of_fame import *
+from league_role import *
 
 # Ensure we have a good entropy pool to get started
 random.seed(int.from_bytes(os.urandom(128), 'big'))
@@ -235,6 +236,8 @@ async def on_message(message: discord.Message):
 
     shake_thread_on_msg(message)
 
+    await update_league_on_ping(message)
+
     channel_id = message.channel.id
 
     ## anti-spam auto-ban
@@ -279,6 +282,11 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 async def on_member_join(member: discord.Member):
     await asyncio.sleep(60)
     await clean_member_roles(member)
+
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    update_league_db(before, after)
 
 
 # Don't know how to make this work, so just put it in on_message

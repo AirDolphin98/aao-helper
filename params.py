@@ -61,6 +61,14 @@ cur.execute(  # currently channel is expected to take a json serialized list of 
     )
     """
 )
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS league_members (
+        user_id INTEGER PRIMARY KEY,
+        last_updated REAL
+    )
+    """
+)
 
 conn.commit()
 """Here's a tip on how to update a database schema: 

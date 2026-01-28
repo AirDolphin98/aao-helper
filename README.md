@@ -34,6 +34,8 @@ So far, these are the main functions of the bot:
 
 * Commands that streamline the posting of typical Hall of Fame embeds and auto-manage the awarded roles to some extent
 
+* System for maintenance of A&A League role, namely auto-add and auto-remove based on organizer pinging in threads
+
 The bot automates much of these processes and allows people who don't have perms such as manage channels/threads/roles to perform these actions.
 
 ## Setup
@@ -74,9 +76,9 @@ The commands for roll sides, roll dice, and create/edit embed or announcement sh
 
 Note: to make user or channel mentions function properly when entered through a modal field, they must be in angle bracket format, e.g. <@1234567890> or <#1234567890>. @everyone and @here are exceptions and work as written.
 
-7. `list_non_commanders_mem_pings` Must have Manage Server permission to use. Can only use in #server-commands. Lists the pings of members (not Staff or bot) who for one reason or another do not have the Commanders role, which is supposed to be universal to non-Staff non-bot.
+7. `/list_non_commanders_mem_pings` Must have Manage Server permission to use. Can only use in #server-commands. Lists the pings of members (not Staff or bot) who for one reason or another do not have the Commanders role, which is supposed to be universal to non-Staff non-bot.
 
-8. `push_channels_as_default` Must have Manage Server permission to use. Basically always call this when creating new channels. Discord's Community Onboarding system has extremely unfortunate behavior for new channels in categories created after Onboarding was switched on, or without category. Anyone who doesn't have Show All Channels ticked (or who fiddles with Browse Channels which will untick Show All Channels) won't be able to see such new channels except via a random "suggested" tab, or by picking them in Browse Channels. This command automatically performs a clever technique to force everyone to see the channels: create a temp role, private the channels to be only that role, give everyone the role (which may take a while), unprivate the channels and delete the role. Carefully read the messages sent by this command for more info.
+8. `/push_channels_as_default` Must have Manage Server permission to use. Basically always call this when creating new channels. Discord's Community Onboarding system has extremely unfortunate behavior for new channels in categories created after Onboarding was switched on, or without category. Anyone who doesn't have Show All Channels ticked (or who fiddles with Browse Channels which will untick Show All Channels) won't be able to see such new channels except via a random "suggested" tab, or by picking them in Browse Channels. This command automatically performs a clever technique to force everyone to see the channels: create a temp role, private the channels to be only that role, give everyone the role (which may take a while), unprivate the channels and delete the role. Carefully read the messages sent by this command for more info.
 
 ### Showcase
 
@@ -130,10 +132,18 @@ Unless otherwise specified, Staff and only Staff role may use the following comm
 
 ## Hall of fame embeds
 
-22. `hall_of_fame` This command group allows Staff to more easily post in hall-of-fame channel. These commands grant Hall of Fame role to all featured players. 
+22. `/hall_of_fame` This command group allows Staff to more easily post in hall-of-fame channel. These commands grant Hall of Fame role to all featured players. 
 
     a. `top_10` Posts Top 10 Platinum embed for season end. If not for a just-ended season, it does not auto-grant ranks aside from Hall of Fame. For a just-ended season, grants and records Top 10 and #1 ranks too.
 
     b. `tournament` Posts Tournament embed for Solos, Duos, or Blitz winners and finalists. The primary Champion roles are not managed by this, but the underlying Champions role is. Blitz tournament follows a dethrone policy as of 2024, so remember to manually remove the previous Blitz Champion's role, and the underlying Champion role if not champion in another tournament.
 
     c. `league` Posts League Generals embed. Provides the option to cycle the Generals and Supreme Commander roles to the featured players, removing from other players. Choose this if for the current started League season.
+
+## League role maintenance
+
+* `On user ping by league organizer in league channel thread` Whenever a League Organizer pings someone inside a thread in the aa-league channel, that person will get A&A League role if they don't have it already, and they will be recorded in the database as an up-to-date member of league. At the same time, those who are have not been updated in too long will be removed from the database and their league role removed, although if too many are outdated at one time, this will not execute in case there is some other problem. To save annoying confirmations, league role must be manually removed from someone who was pinged in thread but is not intended to be a league member. Manual add/remove of roles updates the database too.
+
+23. `/align_league_db` Refreshes the database to be exactly who has the A&A League role at present. Useful when database first introduced and in case tech problems or circumstances cause the database to become misaligned.
+
+24. `/print_league_db` Posts ephemeral Discord messages displaying the contents of the database. Basic function.
