@@ -114,7 +114,7 @@ async def print_league_db(interaction: discord.Interaction):
     if not rows:
         await interaction.response.send_message("No entries in the league_members database.", ephemeral=True)
         return
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
     output = f"league_members database:    Total members: {len(rows)}\nUsername    Last Updated (UTC)\n"
     for user_id, last_updated in rows:
         last_updated = datetime.fromtimestamp(last_updated, tz=timezone.utc)
