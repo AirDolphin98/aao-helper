@@ -12,7 +12,7 @@ last_shaken = {}
 
 
 def shake_thread_on_msg(msg: discord.Message):
-    if msg.channel.type not in [discord.ChannelType.public_thread, discord.ChannelType.private_thread]:
+    if not isinstance(msg.channel, discord.Thread):
         return
     cur.execute(
         "SELECT * FROM threads_persist WHERE channelthread_id = ? OR channelthread_id = ?",
@@ -49,7 +49,7 @@ async def unarchiver():
             elif ch_th.type in [discord.ChannelType.text]:
                 for th in ch_th.threads:
                     await shake_thread(th)
-            elif ch_th.type in [discord.ChannelType.public_thread, discord.ChannelType.private_thread]:
+            elif isinstance(ch_th, discord.Thread):
                 await shake_thread(ch_th)
             else:
                 print(f"Unsupported channel type with ID {ch_id}")
@@ -69,8 +69,7 @@ async def auto_unarchive(interaction: discord.Interaction):
     c_id = interaction.channel_id  # Can be thread id or channel id if not thread
     ch_th = interaction.guild.get_channel_or_thread(c_id)
 
-    if ch_th.type not in [discord.ChannelType.text, discord.ChannelType.public_thread,
-                          discord.ChannelType.private_thread]:
+    if ch_th.type not in [discord.ChannelType.text] and not isinstance(ch_th, discord.Thread):
         await interaction.response.send_message("Must be text channel or thread.", ephemeral=True)
         return
 

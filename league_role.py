@@ -69,7 +69,7 @@ async def update_league_on_ping(msg: discord.Message):
     if not isinstance(msg.author, discord.Member):
         return
     if LEAGUE_ORG_ID in [role.id for role in msg.author.roles] \
-    and msg.channel.type in [discord.ChannelType.public_thread, discord.ChannelType.private_thread] \
+    and isinstance(msg.channel, discord.Thread) \
     and msg.channel.parent.id == LEAGUE_CHANNEL_ID:
         missing_users = []
         for user in msg.mentions:
