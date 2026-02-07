@@ -5,6 +5,8 @@ from discord import app_commands
 from discord.ext import tasks
 from typing import Optional
 import re
+import asyncio
+import os
 import random
 import types
 import datetime as datetime_module  # stupid aspect of datetime being also an object
@@ -177,6 +179,7 @@ class ConfirmDefaultsView(discord.ui.View):
 
         async def long_add_temp(count, tenth):
             for mem in templess_mems:
+                await asyncio.sleep(RATE_LIMIT_GAP)
                 await mem.add_roles(type(self).temp)
                 count += 1
                 if count >= mem_count*(tenth+1)/10:

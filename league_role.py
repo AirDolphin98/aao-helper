@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 LEAGUE_ROLE_ID = 880252578477244417 #A&A League
 LEAGUE_ORG_ID = 874798614122234006 #League Organizer
 LEAGUE_CHANNEL_ID = 874084922636255253 #aa-league
-AUTO_EXPIRATION_DAYS = 65
+AUTO_EXPIRATION_DAYS = 95
 EXPIRATION_SAFETY_CAP = 10 #max number of users to auto-remove at once to prevent accidents
 
 """Debugging in A&AO Test Server"""
@@ -119,8 +119,10 @@ async def print_league_db(interaction: discord.Interaction):
     for user_id, last_updated in rows:
         last_updated = datetime.fromtimestamp(last_updated, tz=timezone.utc)
         username = interaction.guild.get_member(user_id).name.replace('_', '\\_') if interaction.guild.get_member(user_id) else f"User ID {user_id}"
-        output += f"{username}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
-        if len(output) > 1900:
+        row = f"{username}    {last_updated.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        if len(output + row) > MESSAGE_LIMIT:
             await interaction.followup.send(output, ephemeral=True)
-            output = ""
+            output = row
+        else:
+            output += row
     await interaction.followup.send(output, ephemeral=True)
