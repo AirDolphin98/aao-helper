@@ -21,6 +21,7 @@ from exhibition import *
 from thread_auto_manage import *
 from hall_of_fame import *
 from league_role import *
+from move_messages import *
 
 # Ensure we have a good entropy pool to get started
 random.seed(int.from_bytes(os.urandom(128), 'big'))

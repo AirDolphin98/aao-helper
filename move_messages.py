@@ -94,7 +94,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
 @app_commands.checks.bot_has_permissions(read_message_history=True, manage_messages=True)
 @app_commands.describe(
     to_channel_id="ID or # of the channel or thread to move messages to",
-    from_message_id="ID of the earliest message to move",
+    from_message_id="ID of the earliest message to move. If only this is provided, only this message will be moved.",
     up_to_message_id="ID of the latest message to move (optional, defaults to only the one message)",
     user_filter="@mention (press space at end) or user ID of the only user(s) to include. Precede with '-' to exclude users instead (optional, defaults to all users)",
     delete_original="Delete original messages after moving (yes/no, default no)",
@@ -109,7 +109,7 @@ async def move_messages(
     from_message_id: str,
     up_to_message_id: Optional[str] = None,
     user_filter: Optional[str] = None,
-    delete_original: Optional[app_commands.Choice[str]] = app_commands.Choice(name="no", value="no"),
+    delete_original: Optional[app_commands.Choice[str]] = "no",
 ):
     src_ch = interaction.channel
     try:
@@ -145,18 +145,34 @@ async def move_messages(
         await interaction.response.send_message("Need Manage Webhooks permission in the destination channel to move messages.", ephemeral=True)
         return
 
-    from_msg = await src_ch.fetch_message(from_message_id)
-    to_msg = await src_ch.fetch_message(up_to_message_id) if up_to_message_id else None
+    try:
+        from_msg = await src_ch.fetch_message(from_message_id)
+    except discord.NotFound:
+        await interaction.response.send_message("'From' message not found in current channel. Please check the message ID and try again.", ephemeral=True)
+        return
+    try:
+        to_msg = await src_ch.fetch_message(up_to_message_id) if up_to_message_id else None
+    except discord.NotFound:
+        await interaction.response.send_message("'To' message not found in current channel. Please check the message ID and try again.", ephemeral=True)
+        return
+    if from_msg.created_at > to_msg.created_at:
+        await interaction.response.send_message("'To' message must be after 'From' message. Please check the message IDs and try again.", ephemeral=True)
+        return
 
-    if to_msg is None:
+    if to_msg is None or from_message_id == up_to_message_id:
         messages = [from_msg]
     else:
-        messages = [message async for message in src_ch.history(after=from_msg, before=to_msg, oldest_first=True)]
-
-    #TODO: error if from_msg or to_msg not found in channel or if to_msg is before from_msg
+        working_msgs = [message async for message in src_ch.history(after=from_msg, before=to_msg, oldest_first=True)]
+        messages_between = working_msgs.copy()
+        while working_msgs:
+            asyncio.sleep(RATE_LIMIT_GAP * 10)
+            last_msg = working_msgs[-1]
+            working_msgs = [message async for message in src_ch.history(after=last_msg, before=to_msg, oldest_first=True)]
+            messages_between += working_msgs
+        messages = [from_msg] + messages_between + [to_msg]
 
     if not messages:
-        await interaction.response.send_message("Error: No messages to move. Check the provided parameters.", ephemeral=True)
+        await interaction.response.send_message("Error: No messages found. There may be an unusual bug.", ephemeral=True)
         return
     
     if user_filter:
@@ -193,3 +209,31 @@ async def move_messages(
                 pass # if message was already deleted or can't be deleted, just ignore and keep going
             
         
+
+@tree.command(description="Test channel.history contents")
+@app_commands.describe(
+    from_msg_id="ID of the earliest message to fetch",
+    up_to_msg_id="ID of the latest message to fetch",
+    limit="Maximum number of messages to fetch (default 100)"
+)
+async def test_history(interaction: discord.Interaction, from_msg_id: str, up_to_msg_id: str, limit: int = 100):
+    src_ch = interaction.channel
+    try:
+        from_msg_id = int(from_msg_id)  # necessary in case message_id exceeds int53 limit so slash command would reject an int input
+    except ValueError:
+        await interaction.response.send_message("Must enter a valid from message ID.", ephemeral=True)
+        return
+    try:
+        up_to_msg_id = int(up_to_msg_id)  # necessary in case message_id exceeds int53 limit so slash command would reject an int input
+    except ValueError:
+        await interaction.response.send_message("Must enter a valid up to message ID.", ephemeral=True)
+        return
+
+    from_msg = await src_ch.fetch_message(from_msg_id)
+    to_msg = await src_ch.fetch_message(up_to_msg_id)
+
+    messages = [message async for message in src_ch.history(after=from_msg, before=to_msg, oldest_first=True, limit=limit)]
+
+    print('\n\n-\n'.join([message.content for message in messages]))
+    
+    await interaction.response.send_message(f"Found {len(messages)} messages between {from_msg.jump_url} and {to_msg.jump_url}")
