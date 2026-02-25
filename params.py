@@ -3,6 +3,7 @@ from discord.ext import commands
 import sqlite3
 import os
 import sys
+import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,6 +70,19 @@ cur.execute(
     )
     """
 )
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS channel_backups (
+        src_channel_id INTEGER,
+        dest_channel_id INTEGER,
+        last_msg_timestamp REAL,
+        last_backup_timestamp REAL,
+        backup_interval REAL,
+        channel_and_guild_names TEXT,
+        PRIMARY KEY (src_channel_id, dest_channel_id)
+    )
+    """
+)
 
 conn.commit()
 """Here's a tip on how to update a database schema: 
@@ -106,7 +120,7 @@ SERVER_COMM_CH = 670090977356021780 #server-commands
 ANNOUNCEMENT_CHANNEL = 610895694206861364
 
 MESSAGE_LIMIT = 2000 #characters
-RATE_LIMIT_GAP = 0.025 #seconds
+RATE_LIMIT_GAP = 1 #seconds
 TITLE_LIMIT = 256
 DESC_LIMIT = 4096
 FOOTER_LIMIT = 2048

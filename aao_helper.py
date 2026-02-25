@@ -312,6 +312,8 @@ async def on_ready():
         forum_closer.start()
     if not auto_update_season.is_running():
         auto_update_season.start()
+    if not backup_channels.is_running():
+        backup_channels.start()
 
 
 # For persistent views
