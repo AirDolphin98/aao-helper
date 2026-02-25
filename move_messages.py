@@ -47,7 +47,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                     msg_wbhk_name = wbhk.name
                     break
         # prefix with message timestamp unless sent by webhook with recognized name, meaning it was already a moved message
-        msg_time_prefix = '' if msg_wbhk_name and msg_wbhk_name in webhook_names else f'-# [{discord.utils.format_dt(msg.created_at, style='S')}]\n'
+        msg_time_prefix = '' if msg_wbhk_name and msg_wbhk_name in webhook_names else f"-# [{discord.utils.format_dt(msg.created_at, style='S')}]\n"
 
         sub_msgs = []
         if len(msg_time_prefix + msg_content) <= MESSAGE_LIMIT: # save some processing if message doesn't even need to be split
@@ -68,7 +68,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                     current_chunk += token
         
         if msg.edited_at:
-            edited_suffix = f'\n-# *(edited {discord.utils.format_dt(msg.edited_at, style='S')})*'
+            edited_suffix = f"\n-# *(edited {discord.utils.format_dt(msg.edited_at, style='S')})*"
             if len(sub_msgs[-1]) + len(edited_suffix) > MESSAGE_LIMIT:
                 sub_msgs.append(edited_suffix)
             else:
