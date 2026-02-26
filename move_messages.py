@@ -41,9 +41,9 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
     def get_msg_content(msg: discord.Message):
         if msg.reference and msg.message_snapshots:
             msg_snap = msg.message_snapshots[0]
-            return f"-# > forwarded from: {msg.reference.jump_url} -- {discord.utils.format_dt(msg_snap.created_at, style='S')}\n{discord.utils.escape_mentions(msg_snap.content)}"
+            return f"-# > forwarded from: {msg.reference.jump_url} -- {discord.utils.format_dt(msg_snap.created_at, style='S')}\n{msg_snap.content}"
         msg_poll_text = f"-# [Poll]\n> {msg.poll.question}\n" + "\n".join([f"- {answer.text}" for answer in msg.poll.answers]) if msg.poll else None
-        return msg.clean_content or msg_poll_text or msg.system_content or '-# [message was empty]'
+        return msg.content or msg_poll_text or msg.system_content or '' # shouldn't need to worry about sending empty content as long as there's msg_prefix with the timestamp
     
     for msg in messages:
         msg_wbhk_name = None
@@ -110,6 +110,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
                         wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
                     )
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
@@ -123,6 +124,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         avatar_url=msg.author.display_avatar.url,
                         embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
                     )
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
@@ -138,6 +140,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
                         wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
                     )
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
@@ -150,6 +153,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         avatar_url=msg.author.display_avatar.url,
                         embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
                     )
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
