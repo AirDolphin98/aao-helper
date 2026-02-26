@@ -38,8 +38,14 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
         if webhook.channel != wb_dest_ch:
             await webhook.edit(channel=wb_dest_ch)
 
+    def get_msg_content(msg: discord.Message):
+        if msg.reference and msg.message_snapshots:
+            msg_snap = msg.message_snapshots[0]
+            return f"-# > forwarded from: {msg.reference.jump_url} -- {discord.utils.format_dt(msg_snap.created_at, style='S')}\n{discord.utils.escape_mentions(msg_snap.content)}"
+        msg_poll_text = f"-# [Poll]\n> {msg.poll.question}\n" + "\n".join([f"- {answer.text}" for answer in msg.poll.answers]) if msg.poll else None
+        return msg.clean_content or msg_poll_text or msg.system_content or '-# [message was empty]'
+    
     for msg in messages:
-        msg_content = msg.clean_content or msg.system_content or '-# [message was empty]'
         msg_wbhk_name = None
         if msg.webhook_id:
             for wbhk in wbhks:
@@ -47,13 +53,25 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                     msg_wbhk_name = wbhk.name
                     break
         # prefix with message timestamp unless sent by webhook with recognized name, meaning it was already a moved message
-        msg_time_prefix = '' if msg_wbhk_name and msg_wbhk_name in webhook_names else f"-# [{discord.utils.format_dt(msg.created_at, style='S')}]\n"
+        if msg_wbhk_name and msg_wbhk_name in webhook_names:
+            msg_prefix = ''
+        else:
+            msg_prefix = "-# [SYSTEM MESSAGE]\n" if msg.is_system() else ''
+            if msg.reference and msg.reference.type == discord.MessageReferenceType.reply:
+                try:
+                    ref_msg = await msg.channel.fetch_message(msg.reference.message_id)
+                    ref_msg_content = get_msg_content(ref_msg)
+                    msg_prefix += f"-# > reply to: {ref_msg.author.display_name} {ref_msg.jump_url} -- {ref_msg_content[:50]} {'...' if len(ref_msg_content) > 50 else ''}\n"
+                except:
+                    msg_prefix += f"-# > reply to: *Original message was deleted or could not be retrieved*\n"
+            msg_prefix += f"-# [{discord.utils.format_dt(msg.created_at, style='S')}]\n"
 
         sub_msgs = []
-        if len(msg_time_prefix + msg_content) <= MESSAGE_LIMIT: # save some processing if message doesn't even need to be split
-            sub_msgs.append(msg_time_prefix + msg_content)
+        msg_content = get_msg_content(msg)
+        if len(msg_prefix + msg_content) <= MESSAGE_LIMIT: # save some processing if message doesn't even need to be split
+            sub_msgs.append(msg_prefix + msg_content)
         else:
-            current_chunk = msg_time_prefix
+            current_chunk = msg_prefix
             split_content_unlimit = re.split(r'(\s+)', msg_content) # split by whitespace but keep the whitespace as separate tokens to preserve spacing
             split_content = []
             for token in split_content_unlimit:
@@ -79,6 +97,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
             for reaction in reactions:
                 await sent_msg.add_reaction(reaction.emoji)
         
+        msg_or_snap = msg.message_snapshots[0] if msg.message_snapshots else msg
         if isinstance(dest_ch, discord.Thread):
             try:
                 for i, sub_msg in enumerate(sub_msgs):
@@ -88,8 +107,8 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         thread=dest_ch,
                         username=msg.author.display_name,
                         avatar_url=msg.author.display_avatar.url,
-                        embeds=msg.embeds if i==len(sub_msgs)-1 else [],
-                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg.attachments] if i==len(sub_msgs)-1 else [],
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
                         wait=True,
                     )
                     if i == len(sub_msgs)-1:
@@ -102,7 +121,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         thread=dest_ch,
                         username=msg.author.display_name,
                         avatar_url=msg.author.display_avatar.url,
-                        embeds=msg.embeds if i==len(sub_msgs)-1 else [],
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         wait=True,
                     )
                     if i == len(sub_msgs)-1:
@@ -116,8 +135,8 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         content=sub_msg,
                         username=msg.author.display_name,
                         avatar_url=msg.author.display_avatar.url,
-                        embeds=msg.embeds if i==len(sub_msgs)-1 else [],
-                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg.attachments] if i==len(sub_msgs)-1 else [],
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
                         wait=True,
                     )
                     if i == len(sub_msgs)-1:
@@ -129,7 +148,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                         content=sub_msg,
                         username=msg.author.display_name,
                         avatar_url=msg.author.display_avatar.url,
-                        embeds=msg.embeds if i==len(sub_msgs)-1 else [],
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                         wait=True,
                     )
                     if i == len(sub_msgs)-1:
