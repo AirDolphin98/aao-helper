@@ -161,3 +161,5 @@ Unless otherwise specified, Staff and only Staff role may use the following comm
 29. `/list_channel_backups` Only Staff may use. Lists backups in the database.
 
 30. `/backup_pronto` Only Staff may use. Resets the last-run time of a backup so that it runs again as soon as the task loop runs again, instead of the usual time interval between backups. Useful if some new messages deserve to be backed up as soon as possible.
+
+31. `/kill_process` Only Staff may use. Halt execution of move, delete, or backup. More graceful than restarting the bot. 

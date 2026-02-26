@@ -23,6 +23,16 @@ if DEBUG:
     BACKUP_LOOP_MINS = 1
 
 
+kill_flag = datetime.fromtimestamp(0, tz=timezone.utc)  # using a timestamp instead of a boolean to allow for automatic reset of kill flag after certain duration
+class IntentionalKillProcessOfMoveOrDeleteMessages(Exception):
+    pass
+KILL_DURATION = 30 # seconds, to try to ensure that a program has enough time to run in between checks of the kill flag, while also not leaving the kill flag set for too long which
+def check_kill_flag():
+    global kill_flag
+    if datetime.now(timezone.utc) - kill_flag < timedelta(seconds=KILL_DURATION):
+        raise IntentionalKillProcessOfMoveOrDeleteMessages()
+
+
 async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Message]):
     webhook_names = ['Move messages, by AAO Helper'] # If name change, PREPEND to list, do not remove old names
     webhook = None
@@ -46,6 +56,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
         return msg.content or msg_poll_text or msg.system_content or '' # shouldn't need to worry about sending empty content as long as there's msg_prefix with the timestamp
     
     for msg in messages:
+        check_kill_flag()
         msg_wbhk_name = None
         if msg.webhook_id:
             for wbhk in wbhks:
@@ -98,7 +109,7 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
                 try:
                     await sent_msg.add_reaction(reaction.emoji)
                 except:
-                    pass
+                    pass # if reaction can't be added (e.g. custom emoji from another server), just ignore and keep going
         
         msg_or_snap = msg.message_snapshots[0] if msg.message_snapshots else msg
         if isinstance(dest_ch, discord.Thread):
@@ -191,6 +202,11 @@ async def move_messages(
     user_filter: Optional[str] = None,
     delete_original: Optional[app_commands.Choice[int]] = None,
 ):
+    try:
+        check_kill_flag()
+    except IntentionalKillProcessOfMoveOrDeleteMessages:
+        await interaction.response.send_message(f"Please wait for a grace period of {KILL_DURATION} seconds after using the `/kill_process` command.", ephemeral=True)
+        return
     src_ch = interaction.channel
     del_orig = delete_original.value if delete_original else 0
     try:
@@ -282,6 +298,7 @@ async def move_messages(
         await move_msgs(dest_ch, messages)
         if del_orig and not delete_aborted:
             for msg in messages:
+                check_kill_flag()
                 if msgs_deleted >= DELETE_LIMIT:
                     delete_aborted = True
                     break
@@ -294,26 +311,34 @@ async def move_messages(
         return msgs_deleted, delete_aborted
     
     dest_start_msg = await dest_ch.send(f"Messages moved from {from_msg.jump_url}")
-    if to_msg is None or from_message_id == up_to_message_id:
-        num_msgs = 1
-        msgs_deleted, delete_aborted = await move_and_delete([from_msg], msgs_deleted, delete_aborted)
-    else:
-        num_msgs = 0
-        messages = [from_msg] + [message async for message in src_ch.history(after=from_msg, before=to_msg, oldest_first=True)]
-        while messages:  # loop to move messages in batches, in case problems arise from moving too many messages at once
-            msgs_deleted, delete_aborted = await move_and_delete(messages, msgs_deleted, delete_aborted)
-            num_msgs += len(messages)
-            last_msg = messages[-1]
-            messages = [message async for message in src_ch.history(after=last_msg, before=to_msg, oldest_first=True)]
-        msgs_deleted, delete_aborted = await move_and_delete([to_msg], msgs_deleted, delete_aborted)
-        num_msgs += 1
-    
-    delete_aborted_str = f'up to the delete limit of {DELETE_LIMIT} messages' if delete_aborted else ''
     for guild in bot.guilds:
         server_comm_ch = guild.get_channel_or_thread(SERVER_COMM_CH)
         if server_comm_ch:
-            await server_comm_ch.send(f"{interaction.user.name} moved {num_msgs} message{'' if num_msgs == 1 else 's'} from {from_msg.jump_url} to {dest_start_msg.jump_url} using the `/move_messages` command{' and deleted the original messages' if del_orig else ''} {delete_aborted_str}.")
-    await interaction.followup.send(f"Successfully moved {num_msgs} message{'' if num_msgs == 1 else 's'} to {dest_start_msg.jump_url}{' and deleted the original messages' if del_orig else ''} {delete_aborted_str}.", ephemeral=True)
+            break
+    try:
+        if to_msg is None or from_message_id == up_to_message_id:
+            msgs_deleted, delete_aborted = await move_and_delete([from_msg], msgs_deleted, delete_aborted)
+            num_msgs = 1
+        else:
+            num_msgs = 0
+            messages = [from_msg] + [message async for message in src_ch.history(after=from_msg, before=to_msg, oldest_first=True)]
+            while messages:  # loop to move messages in batches, in case problems arise from moving too many messages at once
+                msgs_deleted, delete_aborted = await move_and_delete(messages, msgs_deleted, delete_aborted)
+                num_msgs += len(messages)
+                last_msg = messages[-1]
+                messages = [message async for message in src_ch.history(after=last_msg, before=to_msg, oldest_first=True)]
+            msgs_deleted, delete_aborted = await move_and_delete([to_msg], msgs_deleted, delete_aborted)
+            num_msgs += 1
+    except IntentionalKillProcessOfMoveOrDeleteMessages:
+        if server_comm_ch:
+            await server_comm_ch.send(f"The `/move_messages` command by {interaction.user.name} from {from_msg.jump_url} to {dest_start_msg.jump_url} was intentionally stopped before completion by the `/kill_process` command.")
+        await interaction.followup.send(f"This process was intentionally stopped before completion by the `/kill_process` command.", ephemeral=True)
+        return
+    
+    delete_aborted_str = f' up to the delete limit of {DELETE_LIMIT} messages' if delete_aborted else ''
+    if server_comm_ch:
+        await server_comm_ch.send(f"{interaction.user.name} moved {num_msgs} message{'' if num_msgs == 1 else 's'} from {from_msg.jump_url} to {dest_start_msg.jump_url} using the `/move_messages` command{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.")
+    await interaction.followup.send(f"Successfully moved {num_msgs} message{'' if num_msgs == 1 else 's'} to {dest_start_msg.jump_url}{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.", ephemeral=True)
 
 
 @tree.command(description=f"Delete multiple messages in a channel up to {DELETE_LIMIT} messages at a time. Must be Mod to use.")
@@ -330,6 +355,11 @@ async def bulk_delete_messages(
     up_to_message_id: str,
     user_filter: Optional[str] = None,
 ):
+    try:
+        check_kill_flag()
+    except IntentionalKillProcessOfMoveOrDeleteMessages:
+        await interaction.response.send_message(f"Please wait for a grace period of {KILL_DURATION} seconds after using the `/kill_process` command.", ephemeral=True)
+        return
     channel = interaction.channel
     try:
         from_message_id = int(from_message_id)  # necessary in case message_id exceeds int53 limit so slash command would reject an int input
@@ -385,6 +415,10 @@ async def bulk_delete_messages(
     to_endpoint = [to_msg] if len(msg_fetch) < DELETE_LIMIT-1 else []
     messages = [from_msg] + msg_fetch + to_endpoint
     for msg in messages:
+        try:
+            check_kill_flag()
+        except IntentionalKillProcessOfMoveOrDeleteMessages:
+            break
         if msgs_deleted >= DELETE_LIMIT:
             break
         await asyncio.sleep(RATE_LIMIT_GAP)
@@ -394,12 +428,12 @@ async def bulk_delete_messages(
         except:
             pass # if message was already deleted or can't be deleted, just ignore and keep going
     
-    delete_limit_str = f'The delete limit of {DELETE_LIMIT} was reached so some intended messages may not have been deleted' if msgs_deleted >= DELETE_LIMIT else ''
+    delete_limit_str = f' The delete limit of {DELETE_LIMIT} was reached so some intended messages may not have been deleted.' if msgs_deleted >= DELETE_LIMIT else ''
     for guild in bot.guilds:
         server_comm_ch = guild.get_channel_or_thread(SERVER_COMM_CH)
         if server_comm_ch:
             await server_comm_ch.send(f"{interaction.user.name} bulk deleted {msgs_deleted} messages from {from_msg.jump_url} using the `/bulk_delete_messages` command.")
-    await interaction.followup.send(f"Successfully deleted {msgs_deleted} messages. {delete_limit_str}.", ephemeral=True)
+    await interaction.followup.send(f"Successfully deleted {msgs_deleted} messages.{delete_limit_str}", ephemeral=True)
 
 
 
@@ -416,52 +450,55 @@ async def backup_channels():
         conn.commit()
         if server_comm_ch:
             await server_comm_ch.send(error_msg + "\n*This backup pipeline has been removed to prevent error spam.*")
-    for src_ch_id, dest_ch_id, last_msg_timestamp, last_backup_timestamp, backup_interval, channel_and_guild_names in channels_to_backup:
-        src_ch = None
-        dest_ch = None
-        src_ch_name, src_guild_name, dest_ch_name, dest_guild_name = json.loads(channel_and_guild_names) # list, not tuple
-        for guild in bot.guilds:
-            if not src_ch:
-                src_ch = guild.get_channel_or_thread(src_ch_id)
-            if not dest_ch:
-                dest_ch = guild.get_channel_or_thread(dest_ch_id)
-        if not src_ch and not dest_ch:
-            await deal_error(f"Both channels for the backup pipeline from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}** could not be found.", src_ch_id, dest_ch_id)
-            continue
-        if src_ch:
-            src_ch_name = src_ch.name
-            src_guild_name = src_ch.guild.name
-            if not src_ch.permissions_for(guild.me).read_message_history:
-                await deal_error(f"Missing read message history permission for channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**. The destination channel was expected to be channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.", src_ch_id, dest_ch_id)
+    try:
+        for src_ch_id, dest_ch_id, last_msg_timestamp, last_backup_timestamp, backup_interval, channel_and_guild_names in channels_to_backup:
+            src_ch = None
+            dest_ch = None
+            src_ch_name, src_guild_name, dest_ch_name, dest_guild_name = json.loads(channel_and_guild_names) # list, not tuple
+            for guild in bot.guilds:
+                if not src_ch:
+                    src_ch = guild.get_channel_or_thread(src_ch_id)
+                if not dest_ch:
+                    dest_ch = guild.get_channel_or_thread(dest_ch_id)
+            if not src_ch and not dest_ch:
+                await deal_error(f"Both channels for the backup pipeline from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}** could not be found.", src_ch_id, dest_ch_id)
                 continue
-        else:
-            await deal_error(f"Source channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** could not be found. The destination channel was expected to be channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.", src_ch_id, dest_ch_id)
-            continue
-        if dest_ch:
-            dest_ch_name = dest_ch.name
-            dest_guild_name = dest_ch.guild.name
-            if not dest_ch.permissions_for(guild.me).manage_webhooks:
-                await deal_error(f"Missing manage webhooks permission for channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**. The source channel was expected to be channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**.", src_ch_id, dest_ch_id)
+            if src_ch:
+                src_ch_name = src_ch.name
+                src_guild_name = src_ch.guild.name
+                if not src_ch.permissions_for(guild.me).read_message_history:
+                    await deal_error(f"Missing read message history permission for channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**. The destination channel was expected to be channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.", src_ch_id, dest_ch_id)
+                    continue
+            else:
+                await deal_error(f"Source channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** could not be found. The destination channel was expected to be channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.", src_ch_id, dest_ch_id)
                 continue
-        else:
-            await deal_error(f"Destination channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}** could not be found. The source channel was expected to be channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**.", src_ch_id, dest_ch_id)
-            continue
-        if datetime.now(timezone.utc) - datetime.fromtimestamp(last_backup_timestamp, tz=timezone.utc) < timedelta(days=backup_interval):
-            continue
-        
-        messages_to_backup = [message async for message in src_ch.history(after=datetime.fromtimestamp(last_msg_timestamp, tz=timezone.utc) if last_msg_timestamp else None, oldest_first=True)]
-        from_msg = messages_to_backup[0] if messages_to_backup else None
-        while messages_to_backup:
-            await move_msgs(dest_ch, messages_to_backup)
-            last_msg = messages_to_backup[-1]
-            messages_to_backup = [message async for message in src_ch.history(after=last_msg, oldest_first=True)]
-        cur.execute(
-            """UPDATE channel_backups SET last_backup_timestamp = ?, channel_and_guild_names = ? WHERE src_channel_id = ? AND dest_channel_id = ?""", 
-            (datetime.now(timezone.utc).timestamp(), json.dumps([src_ch_name, src_guild_name, dest_ch_name, dest_guild_name]), src_ch.id, dest_ch.id)
-            )
-        conn.commit()
-        if from_msg and server_comm_ch:
-            await server_comm_ch.send(f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}")
+            if dest_ch:
+                dest_ch_name = dest_ch.name
+                dest_guild_name = dest_ch.guild.name
+                if not dest_ch.permissions_for(guild.me).manage_webhooks:
+                    await deal_error(f"Missing manage webhooks permission for channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**. The source channel was expected to be channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**.", src_ch_id, dest_ch_id)
+                    continue
+            else:
+                await deal_error(f"Destination channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}** could not be found. The source channel was expected to be channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**.", src_ch_id, dest_ch_id)
+                continue
+            if datetime.now(timezone.utc) - datetime.fromtimestamp(last_backup_timestamp, tz=timezone.utc) < timedelta(days=backup_interval):
+                continue
+            
+            messages_to_backup = [message async for message in src_ch.history(after=datetime.fromtimestamp(last_msg_timestamp, tz=timezone.utc) if last_msg_timestamp else None, oldest_first=True)]
+            from_msg = messages_to_backup[0] if messages_to_backup else None
+            while messages_to_backup:
+                await move_msgs(dest_ch, messages_to_backup)
+                last_msg = messages_to_backup[-1]
+                messages_to_backup = [message async for message in src_ch.history(after=last_msg, oldest_first=True)]
+            cur.execute(
+                """UPDATE channel_backups SET last_backup_timestamp = ?, channel_and_guild_names = ? WHERE src_channel_id = ? AND dest_channel_id = ?""", 
+                (datetime.now(timezone.utc).timestamp(), json.dumps([src_ch_name, src_guild_name, dest_ch_name, dest_guild_name]), src_ch.id, dest_ch.id)
+                )
+            conn.commit()
+            if from_msg and server_comm_ch:
+                await server_comm_ch.send(f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}")
+    except IntentionalKillProcessOfMoveOrDeleteMessages:
+        pass
 
 
 @backup_channels.before_loop
@@ -564,7 +601,7 @@ async def auto_backup_channel(
             break
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} created a backup pipeline for channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild.name}** every {backup_interval.name} using the `/auto_backup_channel` command.")
-    await interaction.followup.send(f"Backup pipeline created to move messages from {src_ch.mention} to {dest_ch.mention} every {backup_interval.name}.", ephemeral=True)
+    await interaction.followup.send(f"Backup pipeline created to move messages from {src_ch.mention} to {dest_ch.mention} every {backup_interval.name}. It should start backing up within {BACKUP_LOOP_MINS} minutes.", ephemeral=True)
 
 
 @tree.command(description="Remove an automatic backup pipeline between two channels. Must be Mod to use.")
@@ -686,3 +723,17 @@ async def backup_pronto(interaction: discord.Interaction, from_channel_id: str, 
         await server_comm_ch.send(f"{interaction.user.name} reset the last backup time for the backup pipeline from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/backup_pronto` command. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     
     await interaction.response.send_message(f"Last backup time reset for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
+
+
+@tree.command(description="Halt the process of moving, deleting, or backing up messages. Must be Staff to use.")
+@app_commands.checks.has_role(STAFF_ROLE_ID)
+async def kill_process(interaction: discord.Interaction):
+    global kill_flag
+    kill_flag = datetime.now(timezone.utc)
+    for guild in bot.guilds:
+        server_comm_ch = guild.get_channel_or_thread(SERVER_COMM_CH)
+        if server_comm_ch:
+            break
+    if server_comm_ch:
+        await server_comm_ch.send(f"{interaction.user.name} issued the `kill_process` command for moving, deleting, or backing up messages. Execution was gracefully interrupted if any such processes were running. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
+    await interaction.response.send_message(f"Kill signal sent. Wait {KILL_DURATION} seconds before attempting a move or delete command again. Auto backup should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
