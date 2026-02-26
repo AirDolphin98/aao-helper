@@ -95,7 +95,10 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
         reactions = msg.reactions
         async def add_reacts(sent_msg: discord.Message, reactions: List[discord.Reaction]):
             for reaction in reactions:
-                await sent_msg.add_reaction(reaction.emoji)
+                try:
+                    await sent_msg.add_reaction(reaction.emoji)
+                except:
+                    pass
         
         msg_or_snap = msg.message_snapshots[0] if msg.message_snapshots else msg
         if isinstance(dest_ch, discord.Thread):
