@@ -332,12 +332,14 @@ async def move_messages(
     except IntentionalKillProcessOfMoveOrDeleteMessages:
         if server_comm_ch:
             await server_comm_ch.send(f"The `/move_messages` command by {interaction.user.name} from {from_msg.jump_url} to {dest_start_msg.jump_url} was intentionally stopped before completion by the `/kill_process` command.")
+        print(f"AAO Helper: Move messages was interrupted from channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_ch.guild.name}**.")
         await interaction.followup.send(f"This process was intentionally stopped before completion by the `/kill_process` command.", ephemeral=True)
         return
     
     delete_aborted_str = f' up to the delete limit of {DELETE_LIMIT} messages' if delete_aborted else ''
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} moved {num_msgs} message{'' if num_msgs == 1 else 's'} from {from_msg.jump_url} to {dest_start_msg.jump_url} using the `/move_messages` command{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.")
+    print(f"AAO Helper: {interaction.user.name} moved {num_msgs} message{'' if num_msgs == 1 else 's'} from channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_ch.guild.name}** using the `/move_messages` command{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.")
     await interaction.followup.send(f"Successfully moved {num_msgs} message{'' if num_msgs == 1 else 's'} to {dest_start_msg.jump_url}{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.", ephemeral=True)
 
 
@@ -418,6 +420,7 @@ async def bulk_delete_messages(
         try:
             check_kill_flag()
         except IntentionalKillProcessOfMoveOrDeleteMessages:
+            print(f"AAO Helper: Bulk delete messages was interrupted in channel `#{channel.name}` ({channel.id}) in server **{channel.guild.name}**.")
             break
         if msgs_deleted >= DELETE_LIMIT:
             break
@@ -433,12 +436,17 @@ async def bulk_delete_messages(
         server_comm_ch = guild.get_channel_or_thread(SERVER_COMM_CH)
         if server_comm_ch:
             await server_comm_ch.send(f"{interaction.user.name} bulk deleted {msgs_deleted} messages from {from_msg.jump_url} using the `/bulk_delete_messages` command.")
+    print(f"AAO Helper: {interaction.user.name} bulk deleted {msgs_deleted} messages from channel `#{channel.name}` ({channel.id}) in server **{channel.guild.name}**.")
     await interaction.followup.send(f"Successfully deleted {msgs_deleted} messages.{delete_limit_str}", ephemeral=True)
 
 
 
 @tasks.loop(minutes=BACKUP_LOOP_MINS)
 async def backup_channels():
+    try:
+        check_kill_flag()
+    except IntentionalKillProcessOfMoveOrDeleteMessages:
+        await asyncio.sleep(KILL_DURATION)
     cur.execute("SELECT src_channel_id, dest_channel_id, last_msg_timestamp, last_backup_timestamp, backup_interval, channel_and_guild_names FROM channel_backups")
     channels_to_backup = cur.fetchall()
     for guild in bot.guilds:
@@ -448,6 +456,7 @@ async def backup_channels():
     async def deal_error(error_msg, src_ch_id, dest_ch_id):
         cur.execute("DELETE FROM channel_backups WHERE src_channel_id = ? AND dest_channel_id = ?", (src_ch_id, dest_ch_id))
         conn.commit()
+        print(f"AAO Helper: Removed the backup from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}** due to error: {error_msg}")
         if server_comm_ch:
             await server_comm_ch.send(error_msg + "\n*This backup pipeline has been removed to prevent error spam.*")
     try:
@@ -484,6 +493,8 @@ async def backup_channels():
             if datetime.now(timezone.utc) - datetime.fromtimestamp(last_backup_timestamp, tz=timezone.utc) < timedelta(days=backup_interval):
                 continue
             
+            
+            print(f"AAO Helper: Starting backup from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
             messages_to_backup = [message async for message in src_ch.history(after=datetime.fromtimestamp(last_msg_timestamp, tz=timezone.utc) if last_msg_timestamp else None, oldest_first=True)]
             from_msg = messages_to_backup[0] if messages_to_backup else None
             while messages_to_backup:
@@ -495,9 +506,11 @@ async def backup_channels():
                 (datetime.now(timezone.utc).timestamp(), json.dumps([src_ch_name, src_guild_name, dest_ch_name, dest_guild_name]), src_ch.id, dest_ch.id)
                 )
             conn.commit()
-            if from_msg and server_comm_ch:
+            print(f"AAO Helper: Backup completed from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
+            if from_msg and server_comm_ch:  # don't send backup complete message if there were no messages to back up, since that would be spammy
                 await server_comm_ch.send(f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}")
     except IntentionalKillProcessOfMoveOrDeleteMessages:
+        print(f"AAO Helper: Backup was interrupted from channel `#{src_ch.name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild_name}**.")
         pass
 
 
@@ -601,6 +614,7 @@ async def auto_backup_channel(
             break
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} created a backup pipeline for channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild.name}** every {backup_interval.name} using the `/auto_backup_channel` command.")
+    print(f"AAO Helper: {interaction.user.name} created a backup for channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild.name}** every {backup_interval.name}.")
     await interaction.followup.send(f"Backup pipeline created to move messages from {src_ch.mention} to {dest_ch.mention} every {backup_interval.name}. It should start backing up within {BACKUP_LOOP_MINS} minutes.", ephemeral=True)
 
 
@@ -651,7 +665,7 @@ async def remove_channel_backup(interaction: discord.Interaction, from_channel_i
             break
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} removed the backup pipeline for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/remove_channel_backup` command.")
-    
+    print(f"AAO Helper: {interaction.user.name} removed the backup from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**.")
     await interaction.response.send_message(f"Backup pipeline removed for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**.", ephemeral=True)
 
 
@@ -720,9 +734,9 @@ async def backup_pronto(interaction: discord.Interaction, from_channel_id: str, 
         if server_comm_ch:
             break
     if server_comm_ch:
-        await server_comm_ch.send(f"{interaction.user.name} reset the last backup time for the backup pipeline from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/backup_pronto` command. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
-    
-    await interaction.response.send_message(f"Last backup time reset for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
+        await server_comm_ch.send(f"{interaction.user.name} reset the 'last backup' time for the backup pipeline from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/backup_pronto` command. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
+    print(f"AAO Helper: {interaction.user.name} reset the backup cycle from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
+    await interaction.response.send_message(f"'Last backup' time reset for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
 
 
 @tree.command(description="Halt the process of moving, deleting, or backing up messages. Must be Staff to use.")
@@ -736,4 +750,5 @@ async def kill_process(interaction: discord.Interaction):
             break
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} issued the `kill_process` command for moving, deleting, or backing up messages. Execution was gracefully interrupted if any such processes were running. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
+    print(f"AAO Helper: {interaction.user.name} halted all processes for moving, deleting, or backing up messages. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     await interaction.response.send_message(f"Kill signal sent. Wait {KILL_DURATION} seconds before attempting a move or delete command again. Auto backup should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
