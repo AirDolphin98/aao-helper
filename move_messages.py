@@ -33,7 +33,7 @@ def check_kill_flag():
         raise IntentionalKillProcessOfMoveOrDeleteMessages()
 
 
-async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Message]):
+async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: List[discord.Message]):
     webhook_names = ['Move messages, by AAO Helper'] # If name change, PREPEND to list, do not remove old names
     webhook = None
     wbhks = await dest_ch.guild.webhooks()
@@ -114,64 +114,78 @@ async def move_msgs(dest_ch: discord.abc.GuildChannel, messages: List[discord.Me
         msg_or_snap = msg.message_snapshots[0] if msg.message_snapshots else msg
         if isinstance(dest_ch, discord.Thread):
             try:
-                for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
-                    sent_msg = await webhook.send(
-                        content=sub_msg,
-                        thread=dest_ch,
-                        username=msg.author.display_name,
-                        avatar_url=msg.author.display_avatar.url,
-                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
-                        wait=True,
-                        allowed_mentions=discord.AllowedMentions.none()
-                    )
-                    if i == len(sub_msgs)-1:
-                        await add_reacts(sent_msg, reactions)
+                async def send_with_attachments():
+                    for i, sub_msg in enumerate(sub_msgs):
+                        await asyncio.sleep(RATE_LIMIT_GAP)
+                        sent_msg = await webhook.send(
+                            content=sub_msg,
+                            thread=dest_ch,
+                            username=msg.author.display_name,
+                            avatar_url=msg.author.display_avatar.url,
+                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                            files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
+                            wait=True,
+                            allowed_mentions=discord.AllowedMentions.none()
+                        )
+                        if i == len(sub_msgs)-1:
+                            await add_reacts(sent_msg, reactions)
+                await send_with_attachments()
             except:
-                for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
-                    sent_msg = await webhook.send(
-                        content=sub_msg,
-                        thread=dest_ch,
-                        username=msg.author.display_name,
-                        avatar_url=msg.author.display_avatar.url,
-                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                        wait=True,
-                        allowed_mentions=discord.AllowedMentions.none()
-                    )
-                    if i == len(sub_msgs)-1:
-                        await add_reacts(sent_msg, reactions)
-                await dest_ch.send(f"-# [attachments in above message could not be moved]")
+                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Trying attachments again.")
+                try:
+                    await send_with_attachments()
+                except:
+                    print(f"AAO Helper: Failed again to move attachments for message {msg.id}. Moving message without attachments.")
+                    for i, sub_msg in enumerate(sub_msgs):
+                        await asyncio.sleep(RATE_LIMIT_GAP)
+                        sent_msg = await webhook.send(
+                            content=sub_msg,
+                            thread=dest_ch,
+                            username=msg.author.display_name,
+                            avatar_url=msg.author.display_avatar.url,
+                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                            wait=True,
+                            allowed_mentions=discord.AllowedMentions.none()
+                        )
+                        if i == len(sub_msgs)-1:
+                            await add_reacts(sent_msg, reactions)
+                    await dest_ch.send(f"-# [attachments in above message could not be moved]")
         else:
             try:
-                for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
-                    sent_msg = await webhook.send(
-                        content=sub_msg,
-                        username=msg.author.display_name,
-                        avatar_url=msg.author.display_avatar.url,
-                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                        files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
-                        wait=True,
-                        allowed_mentions=discord.AllowedMentions.none()
-                    )
-                    if i == len(sub_msgs)-1:
-                        await add_reacts(sent_msg, reactions)
+                async def send_with_attachments():
+                    for i, sub_msg in enumerate(sub_msgs):
+                        await asyncio.sleep(RATE_LIMIT_GAP)
+                        sent_msg = await webhook.send(
+                            content=sub_msg,
+                            username=msg.author.display_name,
+                            avatar_url=msg.author.display_avatar.url,
+                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                            files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
+                            wait=True,
+                            allowed_mentions=discord.AllowedMentions.none()
+                        )
+                        if i == len(sub_msgs)-1:
+                            await add_reacts(sent_msg, reactions)
+                await send_with_attachments()
             except:
-                for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
-                    sent_msg = await webhook.send(
-                        content=sub_msg,
-                        username=msg.author.display_name,
-                        avatar_url=msg.author.display_avatar.url,
-                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                        wait=True,
-                        allowed_mentions=discord.AllowedMentions.none()
-                    )
-                    if i == len(sub_msgs)-1:
-                        await add_reacts(sent_msg, reactions)
-                await dest_ch.send(f"-# [attachments in above message could not be moved]")
+                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Trying attachments again.")
+                try:
+                    await send_with_attachments()
+                except:
+                    print(f"AAO Helper: Failed again to move attachments for message {msg.id}. Moving message without attachments.")
+                    for i, sub_msg in enumerate(sub_msgs):
+                        await asyncio.sleep(RATE_LIMIT_GAP)
+                        sent_msg = await webhook.send(
+                            content=sub_msg,
+                            username=msg.author.display_name,
+                            avatar_url=msg.author.display_avatar.url,
+                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                            wait=True,
+                            allowed_mentions=discord.AllowedMentions.none()
+                        )
+                        if i == len(sub_msgs)-1:
+                            await add_reacts(sent_msg, reactions)
+                    await dest_ch.send(f"-# [attachments in above message could not be moved]")
 
         cur.execute(  # no effect if not a channel pair that's being backed up. Keeps most recently backed up message up-to-date in case of crash
             """UPDATE channel_backups SET last_msg_timestamp = ? WHERE src_channel_id = ? AND dest_channel_id = ?""", 
