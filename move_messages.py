@@ -629,7 +629,7 @@ async def auto_backup_channel(
     if server_comm_ch:
         await server_comm_ch.send(f"{interaction.user.name} created a backup pipeline for channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild.name}** every {backup_interval.name} using the `/auto_backup_channel` command.")
     print(f"AAO Helper: {interaction.user.name} created a backup for channel `#{src_ch.name}` ({src_ch.id}) in server **{src_ch.guild.name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild.name}** every {backup_interval.name}.")
-    await interaction.followup.send(f"Backup pipeline created to move messages from {src_ch.mention} to {dest_ch.mention} every {backup_interval.name}. It should start backing up within {BACKUP_LOOP_MINS} minutes.", ephemeral=True)
+    await interaction.followup.send(f"Backup pipeline created to move messages from {src_ch.mention} to {dest_ch.mention} every {backup_interval.name}. It should start backing up within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''} unless another backup starts or is currently in progress.", ephemeral=True)
 
 
 @tree.command(description="Remove an automatic backup pipeline between two channels. Must be Mod to use.")
@@ -748,9 +748,9 @@ async def backup_pronto(interaction: discord.Interaction, from_channel_id: str, 
         if server_comm_ch:
             break
     if server_comm_ch:
-        await server_comm_ch.send(f"{interaction.user.name} reset the 'last backup' time for the backup pipeline from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/backup_pronto` command. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
-    print(f"AAO Helper: {interaction.user.name} reset the backup cycle from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
-    await interaction.response.send_message(f"'Last backup' time reset for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
+        await server_comm_ch.send(f"{interaction.user.name} reset the 'last backup' time for the backup pipeline from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}** using the `/backup_pronto` command. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''} unless another backup starts or is currently in progress.")
+    print(f"AAO Helper: {interaction.user.name} reset the backup cycle from channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''} unless another backup runs or is running.")
+    await interaction.response.send_message(f"'Last backup' time reset for channel `#{src_ch_name}` ({from_channel_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({to_channel_id}) in server **{dest_guild_name}**. The next backup will happen within {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''} unless another backup starts or is currently in progress.", ephemeral=True)
 
 
 @tree.command(description="Halt the process of moving, deleting, or backing up messages. Must be Staff to use.")

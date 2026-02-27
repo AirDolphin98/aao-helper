@@ -120,7 +120,7 @@ SERVER_COMM_CH = 670090977356021780 #server-commands
 ANNOUNCEMENT_CHANNEL = 610895694206861364
 
 MESSAGE_LIMIT = 2000 #characters
-RATE_LIMIT_GAP = 2 #seconds
+RATE_LIMIT_GAP = 2 #seconds - experience shows 1.5 seconds still runs into the rate limit in the long term, causing console spam, and 2 seconds doesn't seem to ever hit the rate limit
 TITLE_LIMIT = 256
 DESC_LIMIT = 4096
 FOOTER_LIMIT = 2048
