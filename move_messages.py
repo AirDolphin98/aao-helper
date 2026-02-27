@@ -143,20 +143,14 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
                 print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
-                await dest_ch.send("-# [sending attachments as links]")
+                await webhook.send(content="-# [sending attachments as links]", thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                 for attachment in msg_or_snap.attachments:
                     await asyncio.sleep(RATE_LIMIT_GAP)
                     try:
-                        await webhook.send(
-                            content=attachment.url,
-                            thread=dest_ch,
-                            username=msg.author.display_name,
-                            avatar_url=msg.author.display_avatar.url,
-                            wait=True,
-                        )
+                        await webhook.send(content=attachment.url, thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                     except:
                         print(f"AAO Helper: Failed to send link for attachment {attachment.filename} of message {msg.id}.")
-                        await dest_ch.send("-# [attachment failed to send]")
+                        await webhook.send(content="-# [attachment link failed to send]", thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
         else:
             try:
                 for i, sub_msg in enumerate(sub_msgs):
@@ -186,19 +180,14 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
                 print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
-                await dest_ch.send("-# [sending attachments as links]")
+                await webhook.send(content="-# [sending attachments as links]", username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                 for attachment in msg_or_snap.attachments:
                     await asyncio.sleep(RATE_LIMIT_GAP)
                     try:
-                        await webhook.send(
-                            content=attachment.url,
-                            username=msg.author.display_name,
-                            avatar_url=msg.author.display_avatar.url,
-                            wait=True,
-                        )
+                        await webhook.send(content=attachment.url, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                     except:
                         print(f"AAO Helper: Failed to send link for attachment {attachment.filename} of message {msg.id}.")
-                        await dest_ch.send("-# [attachment failed to send]")
+                        await webhook.send(content="-# [attachment link failed to send]", username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
 
         cur.execute(  # no effect if not a channel pair that's being backed up. Keeps most recently backed up message up-to-date in case of crash
             """UPDATE channel_backups SET last_msg_timestamp = ? WHERE src_channel_id = ? AND dest_channel_id = ?""", 
