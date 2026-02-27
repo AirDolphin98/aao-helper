@@ -114,78 +114,91 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
         msg_or_snap = msg.message_snapshots[0] if msg.message_snapshots else msg
         if isinstance(dest_ch, discord.Thread):
             try:
-                async def send_with_attachments():
-                    for i, sub_msg in enumerate(sub_msgs):
-                        await asyncio.sleep(RATE_LIMIT_GAP)
-                        sent_msg = await webhook.send(
-                            content=sub_msg,
-                            thread=dest_ch,
-                            username=msg.author.display_name,
-                            avatar_url=msg.author.display_avatar.url,
-                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                            files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
-                            wait=True,
-                            allowed_mentions=discord.AllowedMentions.none()
-                        )
-                        if i == len(sub_msgs)-1:
-                            await add_reacts(sent_msg, reactions)
-                await send_with_attachments()
+                for i, sub_msg in enumerate(sub_msgs):
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    sent_msg = await webhook.send(
+                        content=sub_msg,
+                        thread=dest_ch,
+                        username=msg.author.display_name,
+                        avatar_url=msg.author.display_avatar.url,
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        files=[await attachment.to_file(spoiler=attachment.is_spoiler()) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
+                        wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
+                    )
+                    if i == len(sub_msgs)-1:
+                        await add_reacts(sent_msg, reactions)
             except:
-                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Trying attachments again.")
-                try:
-                    await send_with_attachments()
-                except:
-                    print(f"AAO Helper: Failed again to move attachments for message {msg.id}. Moving message without attachments.")
-                    for i, sub_msg in enumerate(sub_msgs):
-                        await asyncio.sleep(RATE_LIMIT_GAP)
-                        sent_msg = await webhook.send(
-                            content=sub_msg,
+                for i, sub_msg in enumerate(sub_msgs):
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    sent_msg = await webhook.send(
+                        content=sub_msg,
+                        thread=dest_ch,
+                        username=msg.author.display_name,
+                        avatar_url=msg.author.display_avatar.url,
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
+                    )
+                    if i == len(sub_msgs)-1:
+                        await add_reacts(sent_msg, reactions)
+                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
+                await dest_ch.send("-# [sending attachments as links]")
+                for attachment in msg_or_snap.attachments:
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    try:
+                        await webhook.send(
+                            content=attachment.url,
                             thread=dest_ch,
                             username=msg.author.display_name,
                             avatar_url=msg.author.display_avatar.url,
-                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                             wait=True,
-                            allowed_mentions=discord.AllowedMentions.none()
                         )
-                        if i == len(sub_msgs)-1:
-                            await add_reacts(sent_msg, reactions)
-                    await dest_ch.send(f"-# [attachments in above message could not be moved]")
+                    except:
+                        print(f"AAO Helper: Failed to send link for attachment {attachment.filename} of message {msg.id}.")
+                        await dest_ch.send("-# [attachment failed to send]")
         else:
             try:
-                async def send_with_attachments():
-                    for i, sub_msg in enumerate(sub_msgs):
-                        await asyncio.sleep(RATE_LIMIT_GAP)
-                        sent_msg = await webhook.send(
-                            content=sub_msg,
-                            username=msg.author.display_name,
-                            avatar_url=msg.author.display_avatar.url,
-                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
-                            files=[await attachment.to_file(filename=attachment.filename, spoiler=attachment.is_spoiler(), description=attachment.description if attachment.description else None) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
-                            wait=True,
-                            allowed_mentions=discord.AllowedMentions.none()
-                        )
-                        if i == len(sub_msgs)-1:
-                            await add_reacts(sent_msg, reactions)
-                await send_with_attachments()
+                for i, sub_msg in enumerate(sub_msgs):
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    sent_msg = await webhook.send(
+                        content=sub_msg,
+                        username=msg.author.display_name,
+                        avatar_url=msg.author.display_avatar.url,
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        files=[await attachment.to_file(spoiler=attachment.is_spoiler()) for attachment in msg_or_snap.attachments] if i==len(sub_msgs)-1 else [],
+                        wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
+                    )
+                    if i == len(sub_msgs)-1:
+                        await add_reacts(sent_msg, reactions)
             except:
-                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Trying attachments again.")
-                try:
-                    await send_with_attachments()
-                except:
-                    print(f"AAO Helper: Failed again to move attachments for message {msg.id}. Moving message without attachments.")
-                    for i, sub_msg in enumerate(sub_msgs):
-                        await asyncio.sleep(RATE_LIMIT_GAP)
-                        sent_msg = await webhook.send(
-                            content=sub_msg,
+                for i, sub_msg in enumerate(sub_msgs):
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    sent_msg = await webhook.send(
+                        content=sub_msg,
+                        username=msg.author.display_name,
+                        avatar_url=msg.author.display_avatar.url,
+                        embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
+                        wait=True,
+                        allowed_mentions=discord.AllowedMentions.none()
+                    )
+                    if i == len(sub_msgs)-1:
+                        await add_reacts(sent_msg, reactions)
+                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
+                await dest_ch.send("-# [sending attachments as links]")
+                for attachment in msg_or_snap.attachments:
+                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    try:
+                        await webhook.send(
+                            content=attachment.url,
                             username=msg.author.display_name,
                             avatar_url=msg.author.display_avatar.url,
-                            embeds=msg_or_snap.embeds if i==len(sub_msgs)-1 else [],
                             wait=True,
-                            allowed_mentions=discord.AllowedMentions.none()
                         )
-                        if i == len(sub_msgs)-1:
-                            await add_reacts(sent_msg, reactions)
-                    await dest_ch.send(f"-# [attachments in above message could not be moved]")
+                    except:
+                        print(f"AAO Helper: Failed to send link for attachment {attachment.filename} of message {msg.id}.")
+                        await dest_ch.send("-# [attachment failed to send]")
 
         cur.execute(  # no effect if not a channel pair that's being backed up. Keeps most recently backed up message up-to-date in case of crash
             """UPDATE channel_backups SET last_msg_timestamp = ? WHERE src_channel_id = ? AND dest_channel_id = ?""", 
@@ -763,6 +776,6 @@ async def kill_process(interaction: discord.Interaction):
         if server_comm_ch:
             break
     if server_comm_ch:
-        await server_comm_ch.send(f"{interaction.user.name} issued the `kill_process` command for moving, deleting, or backing up messages. Execution was gracefully interrupted if any such processes were running. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
+        await server_comm_ch.send(f"{interaction.user.name} issued the `/kill_process` command for moving, deleting, or backing up messages. Execution was gracefully interrupted if any such processes were running. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     print(f"AAO Helper: {interaction.user.name} halted all processes for moving, deleting, or backing up messages. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     await interaction.response.send_message(f"Kill signal sent. Wait {KILL_DURATION} seconds before attempting a move or delete command again. Auto backup should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
