@@ -359,7 +359,7 @@ async def move_messages(
     await interaction.followup.send(f"Successfully moved {num_msgs} message{'' if num_msgs == 1 else 's'} to {dest_start_msg.jump_url}{' and deleted the original messages' if del_orig else ''}{delete_aborted_str}.", ephemeral=True)
 
 
-@tree.command(description=f"Delete multiple messages in a channel up to {DELETE_LIMIT} messages at a time. Must be Mod to use.")
+@tree.command(description=f"Delete multiple messages in a channel up to {DELETE_LIMIT} if >14 days old & not in 1 day. Must be Mod to use.")
 @app_commands.checks.has_role(MOD_ROLE_ID)
 @app_commands.checks.bot_has_permissions(read_message_history=True, manage_messages=True)
 @app_commands.describe(
@@ -421,6 +421,8 @@ async def bulk_delete_messages(
                 await interaction.response.send_message(f"No user found with ID `{u_id}`. Please check the user ID and try again.", ephemeral=True)
                 return
             users.append(user)
+
+    is_delete_limited = datetime.now(timezone.utc) - from_msg.created_at >= timedelta(days=14) or to_msg.created_at - from_msg.created_at > timedelta(days=1)
     
     await interaction.response.defer(ephemeral=True) # the following code may take a while, so must defer response so that interaction does not time out
     msgs_deleted = 0
@@ -429,8 +431,8 @@ async def bulk_delete_messages(
             messages = [msg for msg in messages if msg.author not in users]
         else:
             messages = [msg for msg in messages if msg.author in users]
-    msg_fetch = [message async for message in channel.history(after=from_msg, before=to_msg, limit=DELETE_LIMIT-1, oldest_first=True)]
-    to_endpoint = [to_msg] if len(msg_fetch) < DELETE_LIMIT-1 else []
+    msg_fetch = [message async for message in channel.history(after=from_msg, before=to_msg, limit=DELETE_LIMIT-1 if is_delete_limited else None, oldest_first=True)]
+    to_endpoint = [to_msg] if len(msg_fetch) < DELETE_LIMIT-1 or not is_delete_limited else []
     messages = [from_msg] + msg_fetch + to_endpoint
     for msg in messages:
         try:
@@ -438,7 +440,7 @@ async def bulk_delete_messages(
         except IntentionalKillProcessOfMoveOrDeleteMessages:
             print(f"AAO Helper: Bulk delete messages was interrupted in channel `#{channel.name}` ({channel.id}) in server **{channel.guild.name}**.")
             break
-        if msgs_deleted >= DELETE_LIMIT:
+        if msgs_deleted >= DELETE_LIMIT and is_delete_limited:
             break
         await asyncio.sleep(RATE_LIMIT_GAP)
         try:
@@ -447,11 +449,11 @@ async def bulk_delete_messages(
         except:
             pass # if message was already deleted or can't be deleted, just ignore and keep going
     
-    delete_limit_str = f' The delete limit of {DELETE_LIMIT} was reached so some intended messages may not have been deleted.' if msgs_deleted >= DELETE_LIMIT else ''
+    delete_limit_str = f' The delete limit of {DELETE_LIMIT} was reached so some intended messages may not have been deleted.' if msgs_deleted >= DELETE_LIMIT and is_delete_limited else ''
     for guild in bot.guilds:
         server_comm_ch = guild.get_channel_or_thread(SERVER_COMM_CH)
         if server_comm_ch:
-            await server_comm_ch.send(f"{interaction.user.name} bulk deleted {msgs_deleted} messages from {from_msg.jump_url} using the `/bulk_delete_messages` command.")
+            await server_comm_ch.send(f"{interaction.user.name} bulk deleted {msgs_deleted} messages from {from_msg.jump_url} using the `/bulk_delete_messages` command. Note: bulk delete is limited to {DELETE_LIMIT} messages at a time if any messages are over 14 days old or if the messages span over more than 1 day.{delete_limit_str}")
     print(f"AAO Helper: {interaction.user.name} bulk deleted {msgs_deleted} messages from channel `#{channel.name}` ({channel.id}) in server **{channel.guild.name}**.")
     await interaction.followup.send(f"Successfully deleted {msgs_deleted} messages.{delete_limit_str}", ephemeral=True)
 

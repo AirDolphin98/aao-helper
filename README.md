@@ -152,7 +152,7 @@ Unless otherwise specified, Staff and only Staff role may use the following comm
 
 25. `/move_messages` Uses a webhook to move messages in a range from one channel to another while mimicking usernames and avatars. Based on the original Discord MoveBot (which AirDolphin98 first discovered and Andrew subsequently contributed to). Preserves timestamps and reactions (but not number of reactions or users who reacted). Disables all pings. Can filter message authors by either who to include or to exclude. Can move messages to a different server the bot is also in. If same server, can auto delete original messages up to a limit. Copies attachments and embeds. Displays some info from polls. Does not handle threads. Displays quite a bit of info about replies and forwards.
 
-26. `/bulk_delete_messages` Only Mod may use. Deletes messages in a range, up to a limit. Can filter message authors by either who to include or to exclude. Also known in some other Discord bots as the 'purge' command.
+26. `/bulk_delete_messages` Only Mod may use. Deletes messages in a range, up to a limit. The limit does not apply if all messages are younger than 14 days AND span over less than 1 day, keeping it practically useful for e.g. raids. Can filter message authors by either who to include or to exclude. Also known in some other Discord bots as the 'purge' command.
 
 27. `/auto_backup_channel` Only Staff may use. Sets up a "backup" that is essentially a /move_messages that runs periodically from one channel to another. However it cannot delete messages nor filter authors. The idea is to save a copy of all messages, e.g. in a different server. Meta-information about backups is saved in a database.
 
