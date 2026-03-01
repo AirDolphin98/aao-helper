@@ -120,7 +120,10 @@ SERVER_COMM_CH = 670090977356021780 #server-commands
 ANNOUNCEMENT_CHANNEL = 610895694206861364
 
 MESSAGE_LIMIT = 2000 #characters
-RATE_LIMIT_GAP = 2 #seconds - experience shows 1.5 seconds still runs into the rate limit in the long term, causing console spam, and 2 seconds doesn't seem to ever hit the rate limit
+async def rate_limit_gap_deferred(i: int):
+    if i >= 50:  # only insert gap after 30 iterations to make it faster short term while still avoiding rate limit long term
+        await asyncio.sleep(2)  # 2 seconds - experience shows 1.5 seconds still runs into the rate limit in the long term, causing console spam, and 2 seconds doesn't seem to ever hit the rate limit
+
 TITLE_LIMIT = 256
 DESC_LIMIT = 4096
 FOOTER_LIMIT = 2048
@@ -192,3 +195,9 @@ if DEBUG:
             'active': 864688826005454898
         }
     }
+
+
+for guild in bot.guilds:
+    if guild.get_role(MOD_ROLE_ID) and guild.get_role(STAFF_ROLE_ID):  # allows servers other than the main AAO server to use has_role check without having to check a new ID every time
+        MOD_ROLE_NAME = guild.get_role(MOD_ROLE_ID).name
+        STAFF_ROLE_NAME = guild.get_role(STAFF_ROLE_ID).name

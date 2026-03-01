@@ -17,7 +17,7 @@ from datetime import datetime, timezone, timedelta
 
 
 DELETE_LIMIT = 50
-BACKUP_LOOP_MINS = 30
+BACKUP_LOOP_MINS = 20
 if DEBUG:
     DELETE_LIMIT = 5
     BACKUP_LOOP_MINS = 1
@@ -55,7 +55,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
         msg_poll_text = f"-# [Poll]\n> {msg.poll.question}\n" + "\n".join([f"- {answer.text}" for answer in msg.poll.answers]) if msg.poll else None
         return msg.content or msg_poll_text or msg.system_content or '' # shouldn't need to worry about sending empty content as long as there's msg_prefix with the timestamp
     
-    for msg in messages:
+    for j, msg in enumerate(messages):
         check_kill_flag()
         msg_wbhk_name = None
         if msg.webhook_id:
@@ -115,7 +115,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
         if isinstance(dest_ch, discord.Thread):
             try:
                 for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     sent_msg = await webhook.send(
                         content=sub_msg,
                         thread=dest_ch,
@@ -130,7 +130,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         await add_reacts(sent_msg, reactions)
             except:
                 for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     sent_msg = await webhook.send(
                         content=sub_msg,
                         thread=dest_ch,
@@ -145,7 +145,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                 print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
                 await webhook.send(content="-# [sending attachments as links]", thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                 for attachment in msg_or_snap.attachments:
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     try:
                         await webhook.send(content=attachment.url, thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                     except:
@@ -154,7 +154,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
         else:
             try:
                 for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     sent_msg = await webhook.send(
                         content=sub_msg,
                         username=msg.author.display_name,
@@ -168,7 +168,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         await add_reacts(sent_msg, reactions)
             except:
                 for i, sub_msg in enumerate(sub_msgs):
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     sent_msg = await webhook.send(
                         content=sub_msg,
                         username=msg.author.display_name,
@@ -182,7 +182,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                 print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
                 await webhook.send(content="-# [sending attachments as links]", username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                 for attachment in msg_or_snap.attachments:
-                    await asyncio.sleep(RATE_LIMIT_GAP)
+                    await rate_limit_gap_deferred(j)
                     try:
                         await webhook.send(content=attachment.url, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                     except:
@@ -197,7 +197,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
 
 
 @tree.command(description="Move messages from one channel to another. Must be called within the channel to move messages from.")
-@app_commands.checks.has_permissions(manage_messages=True)
+@app_commands.checks.has_role(STAFF_ROLE_NAME)
 @app_commands.checks.bot_has_permissions(read_message_history=True, manage_messages=True)
 @app_commands.describe(
     to_channel_id="ID or # of the channel or thread to move messages to. Must be same server if deleting original messages.",
@@ -313,12 +313,12 @@ async def move_messages(
                 messages = [msg for msg in messages if msg.author in users]
         await move_msgs(dest_ch, messages)
         if del_orig and not delete_aborted:
-            for msg in messages:
+            for j, msg in enumerate(messages):
                 check_kill_flag()
                 if msgs_deleted >= DELETE_LIMIT:
                     delete_aborted = True
                     break
-                await asyncio.sleep(RATE_LIMIT_GAP)
+                await rate_limit_gap_deferred(j)
                 try:
                     await msg.delete()
                     msgs_deleted += 1
@@ -434,7 +434,7 @@ async def bulk_delete_messages(
     msg_fetch = [message async for message in channel.history(after=from_msg, before=to_msg, limit=DELETE_LIMIT-1 if is_delete_limited else None, oldest_first=True)]
     to_endpoint = [to_msg] if len(msg_fetch) < DELETE_LIMIT-1 or not is_delete_limited else []
     messages = [from_msg] + msg_fetch + to_endpoint
-    for msg in messages:
+    for j, msg in enumerate(messages):
         try:
             check_kill_flag()
         except IntentionalKillProcessOfMoveOrDeleteMessages:
@@ -442,7 +442,7 @@ async def bulk_delete_messages(
             break
         if msgs_deleted >= DELETE_LIMIT and is_delete_limited:
             break
-        await asyncio.sleep(RATE_LIMIT_GAP)
+        await rate_limit_gap_deferred(j)
         try:
             await msg.delete()
             msgs_deleted += 1

@@ -179,8 +179,8 @@ class ConfirmDefaultsView(discord.ui.View):
         prog_msg = await interaction.followup.send(prog_str(init_tenth), wait=True)
 
         async def long_add_temp(count, tenth):
-            for mem in templess_mems:
-                await asyncio.sleep(RATE_LIMIT_GAP)
+            for i, mem in enumerate(templess_mems):
+                await rate_limit_gap_deferred(i)
                 await mem.add_roles(type(self).temp)
                 count += 1
                 if count >= mem_count*(tenth+1)/10:
@@ -291,6 +291,16 @@ async def on_member_join(member: discord.Member):
 @bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
     update_league_db(before, after)
+
+
+@bot.event
+async def on_role_update(before: discord.Role, after: discord.Role):
+    if (before.id == MOD_ROLE_ID or before.id == STAFF_ROLE_ID) and before.name != after.name:
+        for guild in bot.guilds:
+            for role in guild.roles:
+                if role.name == before.name:
+                    await role.edit(name=after.name)
+        
 
 
 # Don't know how to make this work, so just put it in on_message
