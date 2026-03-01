@@ -122,7 +122,7 @@ ANNOUNCEMENT_CHANNEL = 610895694206861364
 
 MESSAGE_LIMIT = 2000 #characters
 async def rate_limit_gap_deferred(i: int):
-    if i >= 50:  # only insert gap after 30 iterations to make it faster short term while still avoiding rate limit long term
+    if i >= 40:  # only insert gap after 40 iterations to make it faster short term while still avoiding rate limit long term
         await asyncio.sleep(2)  # 2 seconds - experience shows 1.5 seconds still runs into the rate limit in the long term, causing console spam, and 2 seconds doesn't seem to ever hit the rate limit
 
 TITLE_LIMIT = 256
