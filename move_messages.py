@@ -512,8 +512,9 @@ async def backup_channels():
                 continue
             
             
-            print(f"AAO Helper: Starting backup from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
             messages_to_backup = [message async for message in src_ch.history(after=datetime.fromtimestamp(last_msg_timestamp, tz=timezone.utc) if last_msg_timestamp else None, oldest_first=True)]
+            doing_backup = len(messages_to_backup) > 0
+            if doing_backup: print(f"AAO Helper: Starting backup from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
             from_msg = messages_to_backup[0] if messages_to_backup else None
             while messages_to_backup:
                 await move_msgs(dest_ch, messages_to_backup)
@@ -524,7 +525,7 @@ async def backup_channels():
                 (datetime.now(timezone.utc).timestamp(), json.dumps([src_ch_name, src_guild_name, dest_ch_name, dest_guild_name]), src_ch.id, dest_ch.id)
                 )
             conn.commit()
-            print(f"AAO Helper: Backup completed from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
+            if doing_backup: print(f"AAO Helper: Backup completed from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
             if from_msg and server_comm_ch:  # don't send backup complete message if there were no messages to back up, since that would be spammy
                 await server_comm_ch.send(f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}")
     except IntentionalKillProcessOfMoveOrDeleteMessages:
