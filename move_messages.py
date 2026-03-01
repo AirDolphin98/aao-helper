@@ -305,6 +305,7 @@ async def move_messages(
     await interaction.response.defer(ephemeral=True) # the following code may take a while, so must defer response so that interaction does not time out
     msgs_deleted = 0
     delete_aborted = False
+    is_delete_limited = datetime.now(timezone.utc) - from_msg.created_at >= timedelta(days=14) or to_msg.created_at - from_msg.created_at > timedelta(days=1)
     async def move_and_delete(messages: List[discord.Message], msgs_deleted, delete_aborted):
         if users:
             if exclude:
@@ -315,7 +316,7 @@ async def move_messages(
         if del_orig and not delete_aborted:
             for j, msg in enumerate(messages):
                 check_kill_flag()
-                if msgs_deleted >= DELETE_LIMIT:
+                if msgs_deleted >= DELETE_LIMIT and is_delete_limited:
                     delete_aborted = True
                     break
                 await rate_limit_gap_deferred(j)
