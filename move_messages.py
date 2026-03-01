@@ -97,7 +97,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                     current_chunk += token
         
         if msg.edited_at:
-            edited_suffix = f"\n-# *(edited {discord.utils.format_dt(msg.edited_at, style='S')})*"
+            edited_suffix = f"\n-# [edited {discord.utils.format_dt(msg.edited_at, style='S')}]"
             if len(sub_msgs[-1]) + len(edited_suffix) > MESSAGE_LIMIT:
                 sub_msgs.append(edited_suffix)
             else:
