@@ -112,6 +112,7 @@ with open(upload_ranks_path, 'w') as f:
 
 
 STAFF_ROLE_ID = 943827276104097842
+STAFF_ROLE_NAME = "Staff"
 MOD_ROLE_ID = 659883868635267075
 BEAMDOG_ROLE_ID = 610480003230072833
 COMMANDERS_ROLE_ID = 941829635367378944
@@ -195,9 +196,3 @@ if DEBUG:
             'active': 864688826005454898
         }
     }
-
-
-for guild in bot.guilds:
-    if guild.get_role(MOD_ROLE_ID) and guild.get_role(STAFF_ROLE_ID):  # allows servers other than the main AAO server to use has_role check without having to check a new ID every time
-        MOD_ROLE_NAME = guild.get_role(MOD_ROLE_ID).name
-        STAFF_ROLE_NAME = guild.get_role(STAFF_ROLE_ID).name

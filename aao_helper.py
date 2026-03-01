@@ -295,11 +295,10 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
 @bot.event
 async def on_role_update(before: discord.Role, after: discord.Role):
-    if (before.id == MOD_ROLE_ID or before.id == STAFF_ROLE_ID) and before.name != after.name:
+    if before.id == STAFF_ROLE_ID and before.name != after.name:
         for guild in bot.guilds:
-            for role in guild.roles:
-                if role.name == before.name:
-                    await role.edit(name=after.name)
+            if guild.get_channel_or_thread(SERVER_COMM_CH):
+                await guild.get_channel_or_thread(SERVER_COMM_CH).send(f"Staff role name changed from '{before.name}' to '{after.name}'. You must update the `STAFF_ROLE_NAME` variable in the AAO Helper params file and restart the bot to continue using the `/move_messages` command.")
         
 
 
