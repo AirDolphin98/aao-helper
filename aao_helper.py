@@ -294,7 +294,7 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
 
 @bot.event
-async def on_role_update(before: discord.Role, after: discord.Role):
+async def on_guild_role_update(before: discord.Role, after: discord.Role):
     if before.id == STAFF_ROLE_ID and before.name != after.name:
         for guild in bot.guilds:
             if guild.get_channel_or_thread(SERVER_COMM_CH):
