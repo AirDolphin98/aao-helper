@@ -37,14 +37,15 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
     webhook_names = ['Move messages, by AAO Helper'] # If name change, PREPEND to list, do not remove old names
     webhook = None
     wbhks = await dest_ch.guild.webhooks()
+    wb_dest_ch = dest_ch.parent if isinstance(dest_ch, discord.Thread) else dest_ch
+    webhook_ch_id_name = webhook_names[0] + f" ch: {wb_dest_ch.id}"  # webhook for sending moved message must start with newest name in webhook_names; channel id effectively gives each channel its own webhook
     for wbhk in wbhks:
-        if wbhk.name == webhook_names[0]: # webhook for sending moved message must be newest name
+        if wbhk.name == webhook_ch_id_name:
             webhook = wbhk
             break
-    wb_dest_ch = dest_ch.parent if isinstance(dest_ch, discord.Thread) else dest_ch
     if webhook is None:
-        webhook = await wb_dest_ch.create_webhook(name=webhook_names[0], reason='Required webhook for Move messages to function.')
-    else:
+        webhook = await wb_dest_ch.create_webhook(name=webhook_ch_id_name, reason='Required webhook for Move messages to function.')
+    else:  # should be obsolete code, but shouldn't hurt
         if webhook.channel != wb_dest_ch:
             await webhook.edit(channel=wb_dest_ch)
 
@@ -64,7 +65,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                     msg_wbhk_name = wbhk.name
                     break
         # prefix with message timestamp unless sent by webhook with recognized name, meaning it was already a moved message
-        if msg_wbhk_name and msg_wbhk_name in webhook_names:
+        if msg_wbhk_name and msg_wbhk_name.startswith(tuple(webhook_names)):
             msg_prefix = ''
         else:
             msg_prefix = "-# [SYSTEM MESSAGE]\n" if msg.is_system() else ''
@@ -304,7 +305,7 @@ async def move_messages(
     await interaction.response.defer(ephemeral=True) # the following code may take a while, so must defer response so that interaction does not time out
     msgs_deleted = 0
     delete_aborted = False
-    is_delete_limited = datetime.now(timezone.utc) - from_msg.created_at >= timedelta(days=14) or to_msg.created_at - from_msg.created_at > timedelta(days=1)
+    is_delete_limited = datetime.now(timezone.utc) - from_msg.created_at >= timedelta(days=14) or (to_msg and to_msg.created_at - from_msg.created_at > timedelta(days=1))
     async def move_and_delete(messages: List[discord.Message], msgs_deleted, delete_aborted):
         if users:
             if exclude:
