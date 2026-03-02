@@ -527,7 +527,12 @@ async def backup_channels():
             conn.commit()
             if doing_backup: print(f"AAO Helper: Backup completed from channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.")
             if from_msg and server_comm_ch:  # don't send backup complete message if there were no messages to back up, since that would be spammy
-                await server_comm_ch.send(f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}")
+                backup_complete_str = f"Backup complete for channel `#{src_ch_name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch_name}` ({dest_ch.id}) in server **{dest_guild_name}**. Backed up messages starting from: {from_msg.jump_url}"
+                server_comm_subthread_for_backup_complete = await server_comm_ch.get_thread(1478014030286295203)
+                if server_comm_subthread_for_backup_complete:
+                    await server_comm_subthread_for_backup_complete.send(backup_complete_str)
+                else:
+                    await server_comm_ch.send(backup_complete_str)
     except IntentionalKillProcessOfMoveOrDeleteMessages:
         print(f"AAO Helper: Backup was interrupted from channel `#{src_ch.name}` ({src_ch.id}) in server **{src_guild_name}** to channel `#{dest_ch.name}` ({dest_ch.id}) in server **{dest_guild_name}**.")
         pass
