@@ -179,7 +179,6 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                     )
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
-                print(f"AAO Helper: Failed to move attachments for message {msg.id}. Sending attachments as URLs.")
                 await webhook.send(content="-# [sending attachments as links]", username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
                 for attachment in msg_or_snap.attachments:
                     await rate_limit_gap_deferred(j)
