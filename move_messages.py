@@ -104,6 +104,13 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
             else:
                 sub_msgs[-1] += edited_suffix
 
+        async def try_pin_msg(sent_msg: discord.Message, i: int):
+            if msg.pinned and i == 0:
+                try:
+                    await sent_msg.pin(reason="Move messages")
+                except:
+                    await dest_ch.send("Failed to pin the above message: check permissions or whether this channel already has the max number of pinned messages, and delete some to match the source channel. Then manually pin the above message.")
+
         reactions = msg.reactions
         async def add_reacts(sent_msg: discord.Message, reactions: List[discord.Reaction]):
             for reaction in reactions:
@@ -127,6 +134,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         wait=True,
                         allowed_mentions=discord.AllowedMentions.none()
                     )
+                    await try_pin_msg(sent_msg, i)
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
             except:
@@ -141,6 +149,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         wait=True,
                         allowed_mentions=discord.AllowedMentions.none()
                     )
+                    await try_pin_msg(sent_msg, i)
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
                 await webhook.send(content="-# [sending attachments as links]", thread=dest_ch, username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
@@ -164,6 +173,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         wait=True,
                         allowed_mentions=discord.AllowedMentions.none()
                     )
+                    await try_pin_msg(sent_msg, i)
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
             except:
@@ -177,6 +187,7 @@ async def move_msgs(dest_ch: discord.TextChannel | discord.Thread, messages: Lis
                         wait=True,
                         allowed_mentions=discord.AllowedMentions.none()
                     )
+                    await try_pin_msg(sent_msg, i)
                     if i == len(sub_msgs)-1:
                         await add_reacts(sent_msg, reactions)
                 await webhook.send(content="-# [sending attachments as links]", username=msg.author.display_name, avatar_url=msg.author.display_avatar.url)
