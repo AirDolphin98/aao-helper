@@ -787,3 +787,11 @@ async def kill_process(interaction: discord.Interaction):
         await server_comm_ch.send(f"{interaction.user.name} issued the `/kill_process` command for moving, deleting, or backing up messages. Execution was gracefully interrupted if any such processes were running. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     print(f"AAO Helper: {interaction.user.name} halted all processes for moving, deleting, or backing up messages. If auto backup was interrupted, it should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.")
     await interaction.response.send_message(f"Kill signal sent. Wait {KILL_DURATION} seconds before attempting a move or delete command again. Auto backup should resume in {BACKUP_LOOP_MINS} minute{'s' if BACKUP_LOOP_MINS != 1 else ''}.", ephemeral=True)
+
+
+"""
+TODO note: In the future, may add a /backup_all_threads command. To do this, add a new database to the params file, 
+also indexed by (src_channel_id, dest_channel_id). Regularly check whether any threads in the source channel have
+been updated, and whether any new threads have been added, and back up all new messages. This should work for text 
+and forum channels, if not more. 
+"""
