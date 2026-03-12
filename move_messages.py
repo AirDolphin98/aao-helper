@@ -505,7 +505,7 @@ async def backup_channels():
             if src_ch:
                 src_ch_name = src_ch.name
                 src_guild_name = src_ch.guild.name
-                if not src_ch.permissions_for(guild.me).read_message_history:
+                if not src_ch.permissions_for(src_ch.guild.me).read_message_history:
                     await deal_error(f"Missing read message history permission for channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**. The destination channel was expected to be channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**.", src_ch_id, dest_ch_id)
                     continue
             else:
@@ -514,7 +514,7 @@ async def backup_channels():
             if dest_ch:
                 dest_ch_name = dest_ch.name
                 dest_guild_name = dest_ch.guild.name
-                if not dest_ch.permissions_for(guild.me).manage_webhooks:
+                if not dest_ch.permissions_for(dest_ch.guild.me).manage_webhooks:
                     await deal_error(f"Missing manage webhooks permission for channel `#{dest_ch_name}` ({dest_ch_id}) in server **{dest_guild_name}**. The source channel was expected to be channel `#{src_ch_name}` ({src_ch_id}) in server **{src_guild_name}**.", src_ch_id, dest_ch_id)
                     continue
             else:
