@@ -162,7 +162,7 @@ SHOWCASE_CHANNELS = {
         'role': 1170113943889530971,
         'active': TOURNAMENTS_CATEGORY
     },
-    724102588571582554: { #solos-finals
+    1482802799791308961: { #solos-finals
         'gallery': None,
         'role': 733024838557499494,
         'active': TOURNAMENTS_CATEGORY
