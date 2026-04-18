@@ -27,11 +27,12 @@ def shake_thread_on_msg(msg: discord.Message):
 async def unarchiver():
     async def shake_thread(thread: discord.Thread):
         aad = thread.auto_archive_duration
-        if datetime.now(timezone.utc) - last_shaken.get(thread.id, datetime.min.replace(tzinfo=timezone.utc)) < timedelta(minutes=aad):
+        aad_padded = aad - 360 # much larger than 5 minutes to help account for bot outages
+        if datetime.now(timezone.utc) - last_shaken.get(thread.id, datetime.min.replace(tzinfo=timezone.utc)) < timedelta(minutes=aad_padded):
             return
         hist_last = [m async for m in thread.history(limit=1)]
         last_msg = hist_last[0] if hist_last else thread  # depends on both message and thread having created_at
-        if datetime.now(timezone.utc) - last_msg.created_at > timedelta(minutes=aad):
+        if datetime.now(timezone.utc) - last_msg.created_at > timedelta(minutes=aad_padded):
             temp = 4320 if aad == 10080 else 10080
             await thread.edit(auto_archive_duration=temp)
             await thread.edit(auto_archive_duration=aad)
