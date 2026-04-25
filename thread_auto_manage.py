@@ -33,9 +33,11 @@ async def unarchiver():
         hist_last = [m async for m in thread.history(limit=1)]
         last_msg = hist_last[0] if hist_last else thread  # depends on both message and thread having created_at
         if datetime.now(timezone.utc) - last_msg.created_at > timedelta(minutes=aad_padded):
-            temp = 4320 if aad == 10080 else 10080
-            await thread.edit(auto_archive_duration=temp)
-            await thread.edit(auto_archive_duration=aad)
+#            temp = 4320 if aad == 10080 else 10080
+#            await thread.edit(auto_archive_duration=temp)
+#            await thread.edit(auto_archive_duration=aad)
+            bump_msg = await thread.send("Bump")
+            await bump_msg.delete(delay=1.0)
             last_shaken[thread.id] = datetime.now(timezone.utc)
 
     cur.execute("SELECT channelthread_id FROM threads_persist")
