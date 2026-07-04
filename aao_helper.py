@@ -245,7 +245,7 @@ async def on_message(message: discord.Message):
     channel_id = message.channel.id
 
     ## anti-spam auto-ban
-    if message.channel.type == discord.ChannelType.text and not (message.author.bot or message.author.get_role(STAFF_ROLE_ID) or message.author.get_role(BEAMDOG_ROLE_ID)):
+    if (message.channel.type == discord.ChannelType.text or message.channel.type == discord.ChannelType.voice) and not (message.author.bot or message.author.get_role(STAFF_ROLE_ID) or message.author.get_role(BEAMDOG_ROLE_ID)):
         prev = last_msgs.get(message.author.id)
         limit = 5
         if prev and len(message.content) > 4 and message.content == prev[-1].content and all(
